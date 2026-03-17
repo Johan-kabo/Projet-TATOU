@@ -1,0 +1,27 @@
+/* Icon Font - Professional Icons */
+.icon-home::before { content: "🏠"; }
+.icon-dashboard::before { content: "⚡"; }
+.icon-users::before { content: "👥"; }
+.icon-user::before { content: "👤"; }
+.icon-user-plus::before { content: "➕"; }
+.icon-book::before { content: "📚"; }
+.icon-book-open::before { content: "�"; }
+.icon-edit::before { content: "✏️"; }
+.icon-document::before { content: "�"; }
+.icon-document-check::before { content: "✅"; }
+.icon-chart::before { content: "📊"; }
+.icon-chart-bar::before { content: "�"; }
+.icon-money::before { content: "�"; }
+.icon-credit-card::before { content: "�"; }
+.icon-settings::before { content: "⚙️"; }
+.icon-logout::before { content: "🚪"; }
+.icon-bell::before { content: "🔔"; }
+.icon-search::before { content: "🔍"; }
+.icon-filter::before { content: "🔽"; }
+.icon-pdf::before { content: "📄"; }
+.icon-arrow-right::before { content: "➡️"; }
+.icon-graduation-cap::before { content: "🎓"; }
+.icon-code::before { content: "💻"; }
+.icon-clock::before { content: "⏰"; }
+.icon-warning::before { content: "⚠️"; }
+.icon-google::before { content: "🌐"; }
