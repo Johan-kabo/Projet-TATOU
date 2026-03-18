@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TAAJ Corp – Gestion Universitaire</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --sidebar-bg: #0F1623;
+    --sidebar-text: #94A3B8;
+    --accent: #F59E0B;
+    --accent-hover: #D97706;
+    --page-bg: #F1F5F9;
+    --card-bg: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --border: #E2E8F0;
+    --green: #10B981;
+    --red: #EF4444;
+    --blue: #3B82F6;
+    --purple: #8B5CF6;
+    --font: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font);
+    background: var(--page-bg);
+    color: var(--text-primary);
+  }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 230px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+  }
+
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff;
+  }
+  .logo-text { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.2px; }
+
+  .sidebar-nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
+  .nav-section-label {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px;
+    color: rgba(148,163,184,0.45); text-transform: uppercase;
+    padding: 10px 10px 4px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    color: var(--sidebar-text);
+    transition: background 0.18s, color 0.18s;
+    margin-bottom: 1px;
+    text-decoration: none;
+    border: none; background: transparent; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .nav-item.active { background: var(--accent); color: #fff; }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .sidebar-bottom { padding: 10px; border-top: 1px solid rgba(255,255,255,0.07); }
+  .nav-item.danger:hover { background: rgba(239,68,68,0.12); color: #FCA5A5; }
+
+  /* ── MAIN ── */
+  .main { margin-left: 230px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 11px 26px;
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .search-wrap {
+    flex: 1; max-width: 380px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--page-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 14px;
+  }
+  .search-wrap input {
+    border: none; background: transparent; outline: none;
+    font-family: var(--font); font-size: 13px; color: var(--text-primary); width: 100%;
+  }
+  .search-wrap input::placeholder { color: var(--text-muted); }
+
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .notif-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--page-bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; transition: background 0.15s;
+  }
+  .notif-btn:hover { background: var(--border); }
+  .notif-dot {
+    position: absolute; top: 7px; right: 7px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); border: 2px solid #fff;
+  }
+  .user-block { display: flex; align-items: center; gap: 10px; }
+  .user-names .uname { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .user-names .urole { font-size: 11px; color: var(--text-muted); }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+
+  /* ── CONTENT ── */
+  .content { padding: 24px 26px; flex: 1; }
+
+  /* Loading state */
+  .loading {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 200px; color: var(--text-muted);
+  }
+  .loading-spinner {
+    width: 24px; height: 24px; border: 2px solid var(--border);
+    border-top: 2px solid var(--accent); border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* Page transitions */
+  .page-content {
+    animation: fadeIn 0.3s ease both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <span class="logo-text">TAAJ Corp</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Navigation</div>
+      <button class="nav-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-page="etudiants">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        Étudiants
+      </button>
+      <button class="nav-item" data-page="programmes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+          <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+        </svg>
+        Programmes
+      </button>
+      <button class="nav-item" data-page="inscriptions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Inscriptions
+      </button>
+      <button class="nav-item" data-page="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        Statistiques
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button class="nav-item danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path>
+          <polyline points="16,17 21,12 16,7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Déconnexion
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" placeholder="Rechercher..." />
+      </div>
+
+      <div class="topbar-right">
+        <button class="notif-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <div class="notif-dot"></div>
+        </button>
+
+        <div class="user-block">
+          <div class="user-names">
+            <div class="uname">Admin</div>
+            <div class="urole">Administrateur</div>
+          </div>
+          <div class="avatar">A</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div id="page-content" class="page-content">
+        <!-- Page content will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Navigation system
+class App {
+  constructor() {
+    this.currentPage = 'dashboard';
+    this.pages = {
+      dashboard: 'Frontend/Dashboard.php?ajax=1',
+      etudiants: 'Frontend/Etudiants.php?ajax=1',
+      programmes: 'Frontend/Programmes.php?ajax=1',
+      inscriptions: 'Frontend/Inscription.php?ajax=1',
+      stats: 'Frontend/Stats.php?ajax=1'
+    };
+
+    this.init();
+  }
+
+  init() {
+    this.bindEvents();
+    this.loadPage(this.currentPage);
+  }
+
+  bindEvents() {
+    // Navigation clicks
+    document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const page = e.currentTarget.dataset.page;
+        this.navigateTo(page);
+      });
+    });
+  }
+
+  navigateTo(page) {
+    if (page === this.currentPage) return;
+
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+    this.currentPage = page;
+    this.loadPage(page);
+  }
+
+  async loadPage(page) {
+    const contentDiv = document.getElementById('page-content');
+
+    // Show loading
+    contentDiv.innerHTML = `
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <span style="margin-left: 12px;">Chargement...</span>
+      </div>
+    `;
+
+    try {
+      const timestamp = Date.now();
+      const response = await fetch(`${this.pages[page]}?t=${timestamp}`);
+      if (!response.ok) throw new Error('Page not found');
+
+      const html = await response.text();
+
+      // Extract the content part (remove html, head, body tags)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const content = doc.querySelector('.content') || doc.body;
+
+      // Remove the sidebar and topbar from the loaded content
+      const sidebar = content.querySelector('.sidebar');
+      const topbar = content.querySelector('.topbar');
+      if (sidebar) sidebar.remove();
+      if (topbar) topbar.remove();
+
+      contentDiv.innerHTML = content.innerHTML;
+
+      // Execute any scripts in the loaded content
+      this.executeScripts(content);
+
+      // Update page title
+      document.title = `TAAJ Corp – ${page.charAt(0).toUpperCase() + page.slice(1)}`;
+
+    } catch (error) {
+      console.error('Error loading page:', error);
+      contentDiv.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <h3>Erreur de chargement</h3>
+          <p>Impossible de charger la page demandée.</p>
+        </div>
+      `;
+    }
+  }
+
+  executeScripts(content) {
+    // Execute inline scripts
+    const scripts = content.querySelectorAll('script');
+    scripts.forEach(script => {
+      if (script.src) {
+        // External script
+        const newScript = document.createElement('script');
+        newScript.src = script.src;
+        document.head.appendChild(newScript);
+      } else {
+        // Inline script
+        try {
+          eval(script.textContent);
+        } catch (e) {
+          console.error('Error executing script:', e);
+        }
+      }
+    });
+  }
+}
+
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  new App();
+});
+</script>
+</body>
+</html>

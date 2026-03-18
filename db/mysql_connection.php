@@ -5,9 +5,12 @@ define('DB_NAME', 'gestion inscription');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
+// Variable globale pour la connexion PDO
+global $pdo;
+
 // Connexion à la base de données MySQL
 function getDb() {
-    static $pdo = null;
+    global $pdo;
     
     if ($pdo === null) {
         try {
@@ -26,4 +29,7 @@ function getDb() {
     
     return $pdo;
 }
+
+// Initialiser la connexion globale
+$pdo = getDb();
 ?>

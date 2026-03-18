@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/../db/mysql_connection.php';
 require_once __DIR__ . '/../db/mysql_init.php';
 
 $activePage = $activePage ?? 'dashboard';
@@ -23,6 +24,7 @@ $flash = getFlash();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="assets/css/style.css" />
     <link rel="stylesheet" href="assets/css/icons.css" />
+    <link rel="stylesheet" href="assets/css/modern.css" />
     <script src="assets/js/app.js" defer></script>
 </head>
 <body>
