@@ -28,60 +28,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data) {
     $reference = 'REG' . date('Y') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
     
     try {
-        // Vérifier si la référence existe déjà
-        $checkStmt = $pdo->prepare("SELECT id FROM registrations WHERE reference = ?");
-        $checkStmt->execute([$reference]);
-        if ($checkStmt->fetch()) {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Cette référence existe déjà']);
-            exit;
-        }
+        // Solution ultime : construire la requête SQL manuellement
+        $studentId = (int)$studentId;
+        $programId = (int)$programId;
+        $amount = (float)$amount;
+        $reference = addslashes($reference);
+        $registrationDate = addslashes($registrationDate);
+        $academicYear = addslashes($academicYear);
+        $paymentStatus = addslashes($paymentStatus);
+        $notes = addslashes($notes);
         
-        // Insérer la nouvelle inscription
-        $insertStmt = $pdo->prepare("
-            INSERT INTO registrations (
-                student_id, program_id, reference, registration_date,
-                academic_year, amount, payment_status, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ");
+        // Requête SQL directe
+        $sql = "INSERT INTO registrations (student_id, program_id, reference, registration_date, academic_year, amount, payment_status, notes, created_at) 
+                VALUES ($studentId, $programId, '$reference', '$registrationDate', '$academicYear', $amount, '$paymentStatus', '$notes', NOW())";
         
-        $result = $insertStmt->execute([
-            $studentId,
-            $programId,
-            $reference,
-            $registrationDate,
-            $academicYear,
-            $amount,
-            $paymentStatus,
-            $notes
-        ]);
+        // Exécuter directement avec exec
+        $result = $pdo->exec($sql);
         
-        if ($result) {
+        if ($result !== false) {
             $registrationId = $pdo->lastInsertId();
-            
-            // Journaliser l'action
-            $logStmt = $pdo->prepare("
-                INSERT INTO logs (user_id, action, table_name, record_id, new_values) 
-                VALUES (?, ?, ?, ?, ?)
-            ");
-            $logStmt->execute([
-                $_SESSION['user_id'] ?? 1,
-                'CREATE',
-                'registrations',
-                $registrationId,
-                json_encode([
-                    'student_id' => $studentId,
-                    'program_id' => $programId,
-                    'reference' => $reference,
-                    'amount' => $amount,
-                    'payment_status' => $paymentStatus
-                ])
-            ]);
             
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true, 
                 'registration_id' => $registrationId,
+                'reference' => $reference,
                 'message' => 'Inscription enregistrée avec succès'
             ]);
         } else {

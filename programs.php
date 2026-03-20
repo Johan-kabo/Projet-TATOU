@@ -137,6 +137,29 @@ try {
   }
   .btn-primary:hover { background: var(--accent-hover); }
 
+  /* ── COMPACT BUTTONS ── */
+  .btn-outline {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px; height: 36px; padding: 8px 12px;
+    background: var(--card-bg); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; font-weight: 500; font-family: var(--font);
+    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  .btn-outline:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  .btn-outline:disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+  .btn-outline svg {
+    width: 12px; height: 12px;
+    flex-shrink: 0;
+  }
+
   /* ── VIEW TOGGLE ── */
   .view-toggle {
     display: flex; gap: 8px; margin-bottom: 18px;

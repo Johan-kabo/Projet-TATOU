@@ -166,6 +166,28 @@ try {
   }
   .btn-primary:hover { background: var(--accent-hover); }
 
+  /* ── PAGINATION STYLES ── */
+  .btn-sm {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 28px; padding: 4px 8px;
+    background: var(--card-bg); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; font-weight: 500; font-family: var(--font);
+    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .btn-sm:hover:not(:disabled) {
+    background: var(--primary); color: white; border-color: var(--primary);
+  }
+  .btn-sm:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  .btn-sm:disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+  .btn-sm svg {
+    width: 12px; height: 12px;
+  }
+
   /* ── TABLE CARD ── */
   .table-card {
     background: var(--card-bg); border-radius: 14px;
@@ -572,20 +594,9 @@ try {
             <?php endforeach; ?>
           </tbody>
         </table>
-
-        <div class="pagination">
-          <span id="paginationInfo">Affichage 1–<?php echo min(8, count($students)); ?> sur <?php echo count($students); ?> étudiants</span>
-          <div class="page-btns">
-            <button class="page-btn" onclick="changePage(-1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <button class="page-btn active" id="pg1" onclick="setPage(1)">1</button>
-            <button class="page-btn" id="pg2" onclick="setPage(2)">2</button>
-            <button class="page-btn" onclick="changePage(1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-        </div>
+        
+        <!-- Pagination -->
+        <div id="pagination"></div>
       </div>
     </div>
   </div>
@@ -602,55 +613,56 @@ try {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Prénom</label>
-          <input class="form-input" placeholder="Prénom" />
+          <input class="form-input" id="firstName" placeholder="Prénom" />
         </div>
         <div class="form-group">
           <label class="form-label">Nom</label>
-          <input class="form-input" placeholder="Nom" />
+          <input class="form-input" id="lastName" placeholder="Nom" />
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Adresse email</label>
-        <input class="form-input" type="email" placeholder="Email" />
+        <input class="form-input" type="email" id="email" placeholder="Email" />
       </div>
       <div class="form-group">
         <label class="form-label">Téléphone</label>
-        <input class="form-input" placeholder="Téléphone" />
+        <input class="form-input" id="phone" placeholder="Téléphone" />
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Programme</label>
-          <select class="form-select">
+          <select class="form-select" id="programId">
             <option value="">Sélectionner...</option>
-            <option>Gestion</option>
-            <option>Médecine</option>
-            <option>Informatique</option>
-            <option>Économie</option>
-            <option>Droit</option>
+            <option value="1">Gestion</option>
+            <option value="2">Médecine</option>
+            <option value="3">Informatique</option>
+            <option value="4">Économie</option>
+            <option value="5">Droit</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Niveau</label>
-          <select class="form-select">
+          <select class="form-select" id="level">
             <option value="">Sélectionner...</option>
-            <option>L1</option><option>L2</option><option>L3</option>
-            <option>M1</option><option>M2</option>
+            <option value="L1">L1</option>
+            <option value="L2">L2</option>
+            <option value="L3">L3</option>
+            <option value="M1">M1</option>
+            <option value="M2">M2</option>
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Date de naissance</label>
-          <input class="form-input" type="date" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Statut</label>
-          <select class="form-select">
-            <option>Actif</option>
-            <option>En attente</option>
-            <option>Inactif</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label class="form-label">Date de naissance</label>
+        <input class="form-input" type="date" id="dateOfBirth" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Statut</label>
+        <select class="form-select" id="status">
+          <option value="pending">En attente</option>
+          <option value="active">Actif</option>
+          <option value="inactive">Inactif</option>
+        </select>
       </div>
     </div>
     <div class="modal-footer">
@@ -663,1068 +675,326 @@ try {
   </div>
 </div>
 
-<script>
-const COLORS = ['#3B82F6','#10B981','#8B5CF6','#F59E0B','#EF4444','#06B6D4','#EC4899','#84CC16'];
+    <script>
+        // Variables globales
+        let students = [];
+        let currentPage = 1;
+        const STUDENTS_PER_PAGE = 8;
 
-// Récupérer les étudiants depuis la base de données via API
-let students = [];
-let currentPage = 1;
-let filtered = [];
-const PER_PAGE = 10; // Constante pour la pagination
+        // Fonctions du modal
+        function openModal() { 
+            console.log('openModal() appelé');
+            document.getElementById('modalOverlay').classList.add('open'); 
+        }
 
-// Fonction pour charger les étudiants depuis le serveur
-async function loadStudents() {
-  try {
-    // Utiliser la vraie API pour la production
-    const response = await fetch('api_crud_students.php');
-    
-    // Vérifier si la réponse est OK
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    // Vérifier si la réponse contient du contenu
-    const text = await response.text();
-    console.log('Réponse brute de l\'API:', text);
-    
-    if (!text) {
-      throw new Error('Réponse vide du serveur');
-    }
-    
-    // Parser le JSON
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error('Erreur de parsing JSON:', e);
-      console.error('Réponse brute:', text);
-      throw new Error('Réponse JSON invalide: ' + e.message);
-    }
-    
-    console.log('Données parsées:', data);
-    
-    if (data.success) {
-      students = data.students || [];
-      filtered = [...students];
-      renderTable();
-      updateStatistics();
-      updateCharts(); // Mettre à jour les graphiques
-      showNotification('✅ Étudiants chargés avec succès', 'success');
-    } else {
-      console.error('Erreur du serveur:', data.message);
-      showNotification('❌ Erreur: ' + data.message, 'error');
-    }
-  } catch (error) {
-    console.error('Erreur de chargement:', error);
-    showNotification('❌ Erreur de chargement des étudiants: ' + error.message, 'error');
-  }
-}
+        function closeModal() { 
+            console.log('closeModal() appelé');
+            document.getElementById('modalOverlay').classList.remove('open'); 
+        }
 
-// Fonction pour sauvegarder un étudiant dans la base de données
-function saveStudent() {
-  const btn = document.querySelector('.btn-primary');
-  const originalText = btn.innerHTML;
-  
-  // Récupérer les valeurs du formulaire avec vérifications
-  const firstNameInput = document.querySelector('input[placeholder="Prénom"]');
-  const lastNameInput = document.querySelector('input[placeholder="Nom"]');
-  const emailInput = document.querySelector('input[placeholder="Email"]');
-  const phoneInput = document.querySelector('input[placeholder="Téléphone"]');
-  const programSelect = document.querySelector('select');
-  const levelSelect = document.querySelectorAll('select')[1];
-  const dobInput = document.querySelector('input[type="date"]');
-  const statusSelect = document.querySelectorAll('select')[2];
-  
-  // Vérifier que tous les éléments existent
-  if (!firstNameInput || !lastNameInput || !emailInput || !programSelect || !levelSelect || !dobInput || !statusSelect) {
-    console.error('Éléments du formulaire non trouvés:', {
-      firstName: !!firstNameInput,
-      lastName: !!lastNameInput,
-      email: !!emailInput,
-      phone: !!phoneInput,
-      program: !!programSelect,
-      level: !!levelSelect,
-      dob: !!dobInput,
-      status: !!statusSelect
-    });
-    
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '⚠️ Erreur: Formulaire incomplet';
-    setTimeout(() => {
-      btn.style.background = '';
-      btn.innerHTML = originalText;
-    }, 3000);
-    return;
-  }
-  
-  const firstName = firstNameInput.value.trim();
-  const lastName = lastNameInput.value.trim();
-  const email = emailInput.value.trim();
-  const phone = phoneInput.value.trim();
-  const programId = programSelect.value;
-  const level = levelSelect.value;
-  const dob = dobInput.value;
-  const status = statusSelect.value;
-  
-  // Validation simple
-  if (!firstName || !lastName || !email || !programId || !level || !dob) {
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '⚠️ Veuillez remplir tous les champs obligatoires';
-    setTimeout(() => {
-      btn.style.background = '';
-      btn.innerHTML = originalText;
-    }, 3000);
-    return;
-  }
-  
-  // Validation email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '⚠️ Email invalide';
-    setTimeout(() => {
-      btn.style.background = '';
-      btn.innerHTML = originalText;
-    }, 3000);
-    return;
-  }
-  
-  // Afficher le chargement
-  btn.innerHTML = '⏳ Enregistrement en cours...';
-  btn.disabled = true;
-  
-  console.log('Données à envoyer:', {
-    first_name: firstName,
-    last_name: lastName,
-    email: email,
-    phone: phone,
-    program_id: programId,
-    level: level,
-    date_of_birth: dob,
-    status: status
-  });
-  
-  // Envoyer les données au serveur
-  fetch('api_crud_students.php', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      program_id: programId,
-      level: level,
-      date_of_birth: dob,
-      status: status
-    })
-  })
-  .then(response => {
-    console.log('Réponse du serveur:', response.status);
-    return response.json();
-  })
-  .then(data => {
-    console.log('Données reçues:', data);
-    
-    if (data.success) {
-      btn.style.background = '#10B981';
-      btn.innerHTML = '✅ Étudiant ajouté avec succès !';
-      
-      // Recharger la liste des étudiants
-      loadStudents();
-      
-      // Fermer le modal et réinitialiser le formulaire
-      setTimeout(() => {
-        closeModal();
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-        
-        // Réinitialiser le formulaire
-        firstNameInput.value = '';
-        lastNameInput.value = '';
-        emailInput.value = '';
-        phoneInput.value = '';
-        dobInput.value = '';
-        programSelect.value = '';
-        levelSelect.value = '';
-        statusSelect.value = '';
-      }, 2000);
-    } else {
-      btn.style.background = '#EF4444';
-      btn.innerHTML = '❌ ' + data.message;
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-      }, 3000);
-    }
-  })
-  .catch(error => {
-    console.error('Erreur:', error);
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '❌ Erreur de connexion';
-    setTimeout(() => {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
-      btn.style.background = '';
-    }, 3000);
-  });
-}
+        function handleOverlayClick(e) { 
+            if(e.target===document.getElementById('modalOverlay')) closeModal(); 
+        }
 
-// Fonction pour modifier un étudiant
-function editStudent(id) {
-  // Récupérer les détails de l'étudiant
-  fetch(`api_crud_students.php?action=get&id=${id}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        const student = data.student;
-        
-        // Remplir le formulaire avec les données de l'étudiant
-        document.querySelector('input[placeholder="Prénom"]').value = student.first_name;
-        document.querySelector('input[placeholder="Nom"]').value = student.last_name;
-        document.querySelector('input[placeholder="Email"]').value = student.email;
-        document.querySelector('input[placeholder="Téléphone"]').value = student.phone || '';
-        document.querySelector('select').value = student.program_id || '';
-        document.querySelectorAll('select')[1].value = student.level || '';
-        document.querySelector('input[type="date"]').value = student.date_of_birth || '';
-        document.querySelectorAll('select')[2].value = student.status || 'pending';
-        
-        // Changer le bouton pour "Mettre à jour"
-        const btn = document.querySelector('.btn-primary');
-        btn.innerHTML = '🔄 Mettre à jour';
-        btn.onclick = () => updateStudent(id);
-        
-        // Ouvrir le modal
-        openModal();
-      } else {
-        alert('Erreur: ' + data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Erreur:', error);
-      alert('Erreur lors du chargement des données de l\'étudiant');
-    });
-}
+        // Fonction de notification
+        function showNotification(message, type = 'info') {
+            // Supprimer les notifications existantes
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(n => n.remove());
+            
+            // Créer la nouvelle notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed; top: 20px; right: 20px; 
+                padding: 15px 20px; border-radius: 8px; color: white; 
+                font-weight: 600; z-index: 9999; min-width: 250px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            
+            // Couleurs selon le type
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                info: '#3b82f6',
+                warning: '#f59e0b'
+            };
+            notification.style.background = colors[type] || colors.info;
+            
+            document.body.appendChild(notification);
+            
+            // Supprimer après 3 secondes
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
 
-// Fonction pour mettre à jour un étudiant
-function updateStudent(id) {
-  const btn = document.querySelector('.btn-primary');
-  const originalText = btn.innerHTML;
-  
-  // Récupérer les valeurs du formulaire
-  const firstName = document.querySelector('input[placeholder="Prénom"]').value.trim();
-  const lastName = document.querySelector('input[placeholder="Nom"]').value.trim();
-  const email = document.querySelector('input[placeholder="Email"]').value.trim();
-  const phone = document.querySelector('input[placeholder="Téléphone"]').value.trim();
-  const programSelect = document.querySelector('select');
-  const programId = programSelect.value;
-  const levelSelect = document.querySelectorAll('select')[1];
-  const level = levelSelect.value;
-  const dob = document.querySelector('input[type="date"]').value;
-  const statusSelect = document.querySelectorAll('select')[2];
-  const status = statusSelect.value;
-  
-  // Validation simple
-  if (!firstName || !lastName || !email || !programId || !level || !dob) {
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '⚠️ Veuillez remplir tous les champs obligatoires';
-    setTimeout(() => {
-      btn.style.background = '';
-      btn.innerHTML = originalText;
-    }, 3000);
-    return;
-  }
-  
-  // Afficher le chargement
-  btn.innerHTML = '⏳ Mise à jour en cours...';
-  btn.disabled = true;
-  
-  // Envoyer les données au serveur
-  fetch(`api_crud_students.php?id=${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      program_id: programId,
-      level: level,
-      date_of_birth: dob,
-      status: status
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      btn.style.background = '#10B981';
-      btn.innerHTML = '✅ Étudiant mis à jour avec succès !';
-      
-      // Recharger la liste des étudiants
-      loadStudents();
-      
-      // Fermer le modal et réinitialiser le formulaire
-      setTimeout(() => {
-        closeModal();
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-        btn.onclick = saveStudent; // Remettre le bouton en mode "Ajouter"
-        
-        // Réinitialiser le formulaire
-        document.querySelector('input[placeholder="Prénom"]').value = '';
-        document.querySelector('input[placeholder="Nom"]').value = '';
-        document.querySelector('input[placeholder="Email"]').value = '';
-        document.querySelector('input[placeholder="Téléphone"]').value = '';
-        document.querySelector('input[type="date"]').value = '';
-        programSelect.value = '';
-        levelSelect.value = '';
-        statusSelect.value = '';
-      }, 2000);
-    } else {
-      btn.style.background = '#EF4444';
-      btn.innerHTML = '❌ ' + data.message;
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-      }, 3000);
-    }
-  })
-  .catch(error => {
-    console.error('Erreur:', error);
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '❌ Erreur de connexion';
-    setTimeout(() => {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
-      btn.style.background = '';
-    }, 3000);
-  });
-}
+        // Charger les étudiants
+        async function loadStudents() {
+            try {
+                const response = await fetch('api_students_simple.php');
+                const text = await response.text();
+                console.log('Réponse API:', text);
+                
+                if (!text) {
+                    throw new Error('Réponse vide du serveur');
+                }
+                
+                const data = JSON.parse(text);
+                console.log('Données parsées:', data);
+                
+                if (data.success) {
+                    students = data.students || [];
+                    renderStudentList();
+                    showNotification('✅ Étudiants chargés avec succès', 'success');
+                } else {
+                    showNotification('❌ Erreur: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erreur de chargement:', error);
+                showNotification('❌ Erreur de chargement: ' + error.message, 'error');
+            }
+        }
 
-// Fonction pour supprimer un étudiant
-function deleteStudent(id) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cet étudiant ? Cette action est irréversible.')) {
-    return;
-  }
-  
-  fetch(`api_crud_students.php?id=${id}`, {
-    method: 'DELETE'
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Recharger la liste des étudiants
-      loadStudents();
-      
-      // Afficher une notification
-      showNotification('✅ Étudiant supprimé avec succès', 'success');
-    } else {
-      alert('❌ ' + data.message);
-    }
-  })
-  .catch(error => {
-    console.error('Erreur:', error);
-    alert('❌ Erreur lors de la suppression');
-  });
-}
+        // Afficher la liste des étudiants
+        function renderStudentList() {
+            const tbody = document.getElementById('studentTableBody');
+            
+            if (!tbody) {
+                console.error('ERREUR: studentTableBody non trouvé !');
+                return;
+            }
+            
+            if (students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucun étudiant trouvé</td></tr>';
+                updatePagination();
+                return;
+            }
 
-// Fonction pour afficher une notification
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed; top: 20px; right: 20px; 
-    background: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#3B82F6'}; 
-    color: white; padding: 15px 20px; 
-    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000; font-weight: 600; font-size: 14px;
-  `;
-  notification.textContent = message;
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.style.transition = 'opacity 0.3s ease-out';
-    notification.style.opacity = '0';
-    setTimeout(() => document.body.removeChild(notification), 300);
-  }, 3000);
-}
+            // Calculer les étudiants pour la page actuelle
+            const startIndex = (currentPage - 1) * STUDENTS_PER_PAGE;
+            const endIndex = startIndex + STUDENTS_PER_PAGE;
+            const currentPageStudents = students.slice(startIndex, endIndex);
 
-// Fonction pour afficher une notification
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed; top: 20px; right: 20px; 
-    background: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#3B82F6'}; 
-    color: white; padding: 15px 20px; 
-    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000; font-weight: 600; font-size: 14px;
-  `;
-  notification.textContent = message;
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.style.transition = 'opacity 0.3s ease-out';
-    notification.style.opacity = '0';
-    setTimeout(() => document.body.removeChild(notification), 300);
-  }, 3000);
-}
+            let html = '';
+            currentPageStudents.forEach(student => {
+                const statusClass = student.status === 'active' ? 'status-active' : 
+                                   student.status === 'pending' ? 'status-pending' : 'status-inactive';
+                const statusText = student.status === 'active' ? 'Actif' : 
+                                  student.status === 'pending' ? 'En attente' : 'Inactif';
+                
+                html += '<tr>';
+                html += '<td>';
+                html += '<div class="student-cell">';
+                html += '<div class="stu-avatar" style="background:#3B82F618;color:#3B82F6;">';
+                html += student.name ? student.name.substring(0, 2).toUpperCase() : 'ST';
+                html += '</div>';
+                html += '<div>';
+                html += '<div class="stu-name">' + (student.name || '') + '</div>';
+                html += '<div class="stu-email">' + (student.email || '') + '</div>';
+                html += '</div>';
+                html += '</div>';
+                html += '</td>';
+                html += '<td>' + (student.program_name || 'N/A') + '</td>';
+                html += '<td>' + (student.level || 'N/A') + '</td>';
+                html += '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td>';
+                html += '<td>' + (student.date || student.registration_date || '-') + '</td>';
+                html += '<td>';
+                html += '<div class="actions-cell">';
+                html += '<button class="btn btn-sm" onclick="editStudent(' + student.id + ')">';
+                html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14M11 5l-5 5L5 12l6-6"/></svg>';
+                html += '</button>';
+                html += '<button class="btn btn-sm btn-danger" onclick="deleteStudent(' + student.id + ')">';
+                html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6m3 0V4h6"/></svg>';
+                html += '</button>';
+                html += '</div>';
+                html += '</td>';
+                html += '</tr>';
+            });
 
-// Fonction pour mettre à jour les statistiques
-function updateStatistics() {
-  const totalStudents = students.length;
-  const activeStudents = students.filter(s => s.status === 'active').length;
-  const pendingStudents = students.filter(s => s.status === 'pending').length;
-  const inactiveStudents = students.filter(s => s.status === 'inactive').length;
-  
-  // Mettre à jour les KPIs
-  const totalKpi = document.querySelector('.kpi-card:nth-child(1) .kpi-value');
-  const activeKpi = document.querySelector('.kpi-card:nth-child(2) .kpi-value');
-  const pendingKpi = document.querySelector('.kpi-card:nth-child(3) .kpi-value');
-  const inactiveKpi = document.querySelector('.kpi-card:nth-child(4) .kpi-value');
-  
-  if (totalKpi) totalKpi.textContent = totalStudents;
-  if (activeKpi) activeKpi.textContent = activeStudents;
-  if (pendingKpi) pendingKpi.textContent = pendingStudents;
-  if (inactiveKpi) inactiveKpi.textContent = inactiveStudents;
-}
+            tbody.innerHTML = html;
+            updatePagination();
+        }
 
-// Fonction pour mettre à jour tous les graphiques avec les données de la base
-function updateCharts() {
-  console.log('Mise à jour des graphiques avec', students.length, 'étudiants');
-  
-  // Mettre à jour le graphique par niveau
-  updateLevelChart();
-  
-  // Mettre à jour le graphique par programme
-  updateProgramChart();
-  
-  // Mettre à jour le graphique par statut
-  updateStatusChart();
-  
-  // Mettre à jour le graphique mensuel
-  updateMonthlyChart();
-}
+        // Mettre à jour la pagination
+        function updatePagination() {
+            const totalPages = Math.ceil(students.length / STUDENTS_PER_PAGE);
+            const paginationContainer = document.getElementById('pagination');
+            
+            if (!paginationContainer) {
+                console.error('ERREUR: pagination non trouvé !');
+                return;
+            }
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
 
-// Graphique par niveau
-function updateLevelChart() {
-  const levelData = {};
-  students.forEach(student => {
-    const level = student.level || 'Non spécifié';
-    levelData[level] = (levelData[level] || 0) + 1;
-  });
-  
-  const levelChart = document.getElementById('levelChart');
-  if (levelChart) {
-    const labels = Object.keys(levelData);
-    const data = Object.values(levelData);
-    
-    levelChart.innerHTML = `
-      <div style="display: flex; justify-content: space-around; align-items: flex-end; height: 200px;">
-        ${labels.map((label, index) => `
-          <div style="text-align: center; flex: 1;">
-            <div style="height: ${data[index] * 20}px; background: #f59e0b; margin: 0 5px; border-radius: 4px;"></div>
-            <div style="margin-top: 5px; font-size: 12px; font-weight: 600;">${label}</div>
-            <div style="font-size: 10px; color: #64748b;">${data[index]}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-}
+            let html = '<div style="display: flex; justify-content: center; align-items: center; gap: 4px; padding: 16px; margin-top: 16px;">';
+            
+            // Bouton précédent
+            const prevDisabled = currentPage === 1 ? 'opacity: 0.4; cursor: not-allowed;' : 'cursor: pointer;';
+            html += `<button class="btn btn-sm" onclick="changePage(-1)" style="${prevDisabled}" ${currentPage === 1 ? 'disabled' : ''}>`;
+            html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';
+            html += '</button>';
+            
+            // Numéros de page
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    const isActive = i === currentPage;
+                    const pageStyle = isActive ? 'background: var(--primary); color: white; border-color: var(--primary);' : 'background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border);';
+                    html += `<button class="btn btn-sm" onclick="goToPage(${i})" style="${pageStyle}">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    html += '<span style="padding: 0 4px; color: var(--text-muted); font-size: 12px;">...</span>';
+                }
+            }
+            
+            // Bouton suivant
+            const nextDisabled = currentPage === totalPages ? 'opacity: 0.4; cursor: not-allowed;' : 'cursor: pointer;';
+            html += `<button class="btn btn-sm" onclick="changePage(1)" style="${nextDisabled}" ${currentPage === totalPages ? 'disabled' : ''}>`;
+            html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+            html += '</button>';
+            
+            // Information sur la page
+            const startItem = (currentPage - 1) * STUDENTS_PER_PAGE + 1;
+            const endItem = Math.min(currentPage * STUDENTS_PER_PAGE, students.length);
+            html += `<span style="margin-left: 12px; color: var(--text-muted); font-size: 12px; font-weight: 400;">`;
+            html += `${startItem}-${endItem} sur ${students.length}`;
+            html += '</span>';
+            
+            html += '</div>';
+            paginationContainer.innerHTML = html;
+        }
 
-// Graphique par programme
-function updateProgramChart() {
-  const programData = {};
-  students.forEach(student => {
-    const program = student.program_name || student.prog || 'Non spécifié';
-    programData[program] = (programData[program] || 0) + 1;
-  });
-  
-  const programChart = document.getElementById('programChart');
-  if (programChart) {
-    const labels = Object.keys(programData);
-    const data = Object.values(programData);
-    
-    programChart.innerHTML = `
-      <div style="display: flex; justify-content: space-around; align-items: flex-end; height: 200px;">
-        ${labels.map((label, index) => `
-          <div style="text-align: center; flex: 1;">
-            <div style="height: ${data[index] * 15}px; background: #10b981; margin: 0 5px; border-radius: 4px;"></div>
-            <div style="margin-top: 5px; font-size: 12px; font-weight: 600;">${label.substring(0, 10)}${label.length > 10 ? '...' : ''}</div>
-            <div style="font-size: 10px; color: #64748b;">${data[index]}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-}
+        // Changer de page
+        function changePage(direction) {
+            const totalPages = Math.ceil(students.length / STUDENTS_PER_PAGE);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderStudentList();
+            }
+        }
 
-// Graphique par statut
-function updateStatusChart() {
-  const statusData = {
-    'Actif': students.filter(s => s.status === 'active').length,
-    'En attente': students.filter(s => s.status === 'pending').length,
-    'Inactif': students.filter(s => s.status === 'inactive').length
-  };
-  
-  const statusChart = document.getElementById('statusChart');
-  if (statusChart) {
-    const labels = Object.keys(statusData);
-    const data = Object.values(statusData);
-    const colors = ['#10b981', '#f59e0b', '#dc2626'];
-    
-    statusChart.innerHTML = `
-      <div style="display: flex; justify-content: space-around; align-items: center; height: 150px;">
-        ${labels.map((label, index) => `
-          <div style="text-align: center;">
-            <div style="width: 80px; height: 80px; background: ${colors[index]}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px;">
-              ${data[index]}
-            </div>
-            <div style="margin-top: 10px; font-size: 12px; font-weight: 600;">${label}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-}
+        // Aller à une page spécifique
+        function goToPage(page) {
+            const totalPages = Math.ceil(students.length / STUDENTS_PER_PAGE);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderStudentList();
+            }
+        }
 
-// Graphique mensuel (inscriptions par mois)
-function updateMonthlyChart() {
-  const monthlyData = {};
-  const currentYear = new Date().getFullYear();
-  
-  students.forEach(student => {
-    const date = student.registration_date || student.date || new Date().toISOString();
-    const month = new Date(date).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
-    monthlyData[month] = (monthlyData[month] || 0) + 1;
-  });
-  
-  const monthlyChart = document.getElementById('monthlyChart');
-  if (monthlyChart) {
-    const labels = Object.keys(monthlyData).slice(-6); // 6 derniers mois
-    const data = labels.map(label => monthlyData[label]);
-    
-    monthlyChart.innerHTML = `
-      <div style="display: flex; justify-content: space-around; align-items: flex-end; height: 150px;">
-        ${labels.map((label, index) => `
-          <div style="text-align: center; flex: 1;">
-            <div style="height: ${data[index] * 25}px; background: #3b82f6; margin: 0 5px; border-radius: 4px;"></div>
-            <div style="margin-top: 5px; font-size: 10px; font-weight: 600;">${label}</div>
-            <div style="font-size: 10px; color: #64748b;">${data[index]}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-}
+        // Sauvegarder un étudiant
+        function saveStudent() {
+            const btn = document.querySelector('.btn-primary');
+            const originalText = btn.innerHTML;
+            
+            try {
+                // Récupérer les valeurs
+                const firstName = document.getElementById('firstName')?.value?.trim() || '';
+                const lastName = document.getElementById('lastName')?.value?.trim() || '';
+                const email = document.getElementById('email')?.value?.trim() || '';
+                const phone = document.getElementById('phone')?.value?.trim() || '';
+                const programId = document.getElementById('programId')?.value || '';
+                const level = document.getElementById('level')?.value || '';
+                const dob = document.getElementById('dateOfBirth')?.value || '';
+                const status = document.getElementById('status')?.value || '';
+                
+                console.log('=== SAVE STUDENT DEBUG ===');
+                console.log('firstName:', firstName);
+                console.log('lastName:', lastName);
+                console.log('email:', email);
+                console.log('phone:', phone);
+                console.log('programId:', programId);
+                console.log('level:', level);
+                console.log('dob:', dob);
+                console.log('status:', status);
+                console.log('=== END DEBUG ===');
+                
+                // Validation
+                if (!firstName || !lastName || !email) {
+                    showNotification('⚠️ Veuillez remplir les champs obligatoires', 'error');
+                    return;
+                }
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showNotification('⚠️ Veuillez entrer une adresse email valide', 'error');
+                    return;
+                }
+                
+                // Désactiver le bouton
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+                
+                // Envoyer les données
+                fetch('api_students_simple.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        phone: phone,
+                        program_id: programId,
+                        level: level,
+                        date_of_birth: dob,
+                        status: status
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Réponse saveStudent:', data);
+                    
+                    if (data.success) {
+                        showNotification('✅ ' + data.message, 'success');
+                        closeModal();
+                        currentPage = 1; // Réinitialiser à la première page
+                        loadStudents(); // Recharger la liste
+                        
+                        // Réinitialiser le formulaire
+                        document.getElementById('firstName').value = '';
+                        document.getElementById('lastName').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('phone').value = '';
+                        document.getElementById('programId').value = '';
+                        document.getElementById('level').value = '';
+                        document.getElementById('dateOfBirth').value = '';
+                        document.getElementById('status').value = 'pending';
+                    } else {
+                        showNotification('❌ ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur saveStudent:', error);
+                    showNotification('❌ Erreur de connexion: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                });
+                
+            } catch (error) {
+                console.error('Erreur dans saveStudent:', error);
+                showNotification('❌ Erreur: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
 
-// Charger les étudiants au chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-  loadStudents();
-});
-
-function getInitials(name) {
-  return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-}
-function getColor(name) {
-  let h = 0; for(let c of name) h += c.charCodeAt(0);
-  return COLORS[h % COLORS.length];
-}
-function statusInfo(s) {
-  if(s==='active')   return { label:'Actif',      cls:'status-active',   dot:'dot-active'   };
-  if(s==='inactive') return { label:'Inactif',    cls:'status-inactive', dot:'dot-inactive' };
-  if(s==='pending')  return { label:'En attente', cls:'status-pending',  dot:'dot-pending'  };
-  return { label:s, cls:'status-pending', dot:'dot-pending' };
-}
-
-function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
-
-function renderTable() {
-  console.log('=== renderTable() appelé ===');
-  console.log('students:', students);
-  console.log('filtered:', filtered);
-  console.log('currentPage:', currentPage);
-  console.log('PER_PAGE:', PER_PAGE);
-  
-  const tbody = document.getElementById('studentTableBody');
-  console.log('tbody element:', tbody);
-  
-  if (!tbody) {
-    console.error('ERREUR: studentTableBody non trouvé !');
-    return;
-  }
-  
-  const start = (currentPage - 1) * PER_PAGE;
-  const page = filtered.slice(start, start + PER_PAGE);
-  
-  console.log('start:', start);
-  console.log('page:', page);
-  console.log('nombre d\'étudiants à afficher:', page.length);
-  
-  tbody.innerHTML = '';
-  
-  if (page.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">Aucun étudiant trouvé</td></tr>';
-    return;
-  }
-  
-  page.forEach((s, index) => {
-    console.log(`Traitement étudiant ${index}:`, s);
-    
-    const ini = getInitials(s.name);
-    const col = getColor(s.name);
-    const si = statusInfo(s.status);
-    const parts = s.name.split(' ');
-    const disp = `<span style="font-weight:700">${parts[0]}</span> ${parts.slice(1).join(' ')}`;
-    
-    const rowHtml = `
-      <tr>
-        <td>
-          <div class="student-cell">
-            <div class="stu-avatar" style="background:${col}18;color:${col};">${ini}</div>
-            <div>
-              <div class="stu-name">${disp}</div>
-              <div class="stu-email">${s.email}</div>
-            </div>
-          </div>
-        </td>
-        <td><span class="prog-tag">${s.prog || s.program_name || 'N/A'}</span></td>
-        <td><span class="level-badge">${s.level || 'N/A'}</span></td>
-        <td>
-          <span class="status-badge ${si.cls}">
-            <span class="status-dot ${si.dot}"></span>
-            ${si.label}
-          </span>
-        </td>
-        <td>${s.date || 'N/A'}</td>
-        <td>
-          <div class="actions-cell">
-            <button class="action-btn view" title="Voir">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-            <button class="action-btn edit" title="Modifier">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button class="action-btn delete" title="Supprimer">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `;
-    
-    tbody.innerHTML += rowHtml;
-  });
-  
-  const total = filtered.length;
-  const end = Math.min(start + PER_PAGE, total);
-  document.getElementById('paginationInfo').textContent = 
-    `Affichage ${start+1}–${end} sur ${total} étudiant${total>1?'s':''}`;
-  document.getElementById('pg1').classList.toggle('active', currentPage===1);
-  document.getElementById('pg2').classList.toggle('active', currentPage===2);
-  
-  console.log('renderTable() terminé');
-}
-
-// ...
-
-function filterTable() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  filtered = students.filter(s =>
-    s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
-  );
-  currentPage = 1;
-  renderTable();
-}
-
-function changePage(d) {
-  const max = Math.ceil(filtered.length / PER_PAGE);
-  currentPage = Math.max(1, Math.min(max, currentPage + d));
-  renderTable();
-}
-function setPage(p) { currentPage = p; renderTable(); }
-
-function toggleFilter() {
-  document.getElementById('filterPanel').classList.toggle('open');
-}
-
-function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
-
-// Fonction pour sauvegarder un étudiant dans la base de données
-function saveStudent() {
-  const btn = document.querySelector('.btn-primary');
-  const originalText = btn.innerHTML;
-  
-  // Récupérer les valeurs du formulaire
-  const firstName = document.querySelector('input[placeholder="Prénom"]').value.trim();
-  const lastName = document.querySelector('input[placeholder="Nom"]').value.trim();
-  const email = document.querySelector('input[placeholder="Email"]').value.trim();
-  const phone = document.querySelector('input[placeholder="Téléphone"]').value.trim();
-  const programSelect = document.querySelector('select');
-  const programId = programSelect.value;
-  const levelSelect = document.querySelectorAll('select')[1];
-  const level = levelSelect.value;
-  const dob = document.querySelector('input[type="date"]').value;
-  const statusSelect = document.querySelectorAll('select')[2];
-  const status = statusSelect.value;
-  
-  // Validation simple
-  if (!firstName || !lastName || !email || !programId || !level || !dob) {
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '⚠️ Veuillez remplir tous les champs obligatoires';
-    setTimeout(() => {
-      btn.style.background = '';
-      btn.innerHTML = originalText;
-    }, 3000);
-    return;
-  }
-  
-  // Validation email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '⚠️ Email invalide';
-    setTimeout(() => {
-      btn.style.background = '';
-      btn.innerHTML = originalText;
-    }, 3000);
-    return;
-  }
-  
-  // Afficher le chargement
-  btn.innerHTML = '⏳ Enregistrement en cours...';
-  btn.disabled = true;
-  
-  // Envoyer les données au serveur
-  fetch('save_student.php', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      program_id: programId,
-      level: level,
-      date_of_birth: dob,
-      status: status
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      btn.style.background = '#10B981';
-      btn.innerHTML = '✅ Étudiant ajouté avec succès !';
-      
-      // Ajouter le nouvel étudiant à la liste locale
-      const newStudent = {
-        id: data.student_id,
-        name: firstName + ' ' + lastName,
-        email: email,
-        prog: programSelect.options[programSelect.selectedIndex].text,
-        level: level,
-        status: status,
-        date: new Date().toLocaleDateString('fr-FR')
-      };
-      students.unshift(newStudent);
-      renderTable();
-      updateStatistics();
-      
-      // Fermer le modal et réinitialiser le formulaire
-      setTimeout(() => {
-        closeModal();
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-        
-        // Réinitialiser le formulaire
-        document.querySelector('input[placeholder="Prénom"]').value = '';
-        document.querySelector('input[placeholder="Nom"]').value = '';
-        document.querySelector('input[placeholder="Email"]').value = '';
-        document.querySelector('input[placeholder="Téléphone"]').value = '';
-        document.querySelector('input[type="date"]').value = '';
-        programSelect.value = '';
-        levelSelect.value = '';
-        statusSelect.value = '';
-      }, 2000);
-    } else {
-      btn.style.background = '#EF4444';
-      btn.innerHTML = '❌ ' + data.message;
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-      }, 3000);
-    }
-  })
-  .catch(error => {
-    console.error('Erreur:', error);
-    btn.style.background = '#EF4444';
-    btn.innerHTML = '❌ Erreur de connexion';
-    setTimeout(() => {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
-      btn.style.background = '';
-    }, 3000);
-  });
-}
-
-// Fonction pour exporter les étudiants en CSV
-function exportStudents() {
-  const rows = document.querySelectorAll('#studentTableBody tr');
-  const data = [['Nom', 'Email', 'Programme', 'Niveau', 'Statut', 'Date']];
-  
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    const name = cells[0].querySelector('.stu-name')?.textContent || '';
-    const email = cells[0].querySelector('.stu-email')?.textContent || '';
-    const program = cells[1].textContent;
-    const level = cells[2].textContent;
-    const status = cells[3].querySelector('span')?.textContent || '';
-    const date = cells[4].textContent;
-    
-    data.push([name, email, program, level, status, date]);
-  });
-  
-  let csvContent = "data:text/csv;charset=utf-8,";
-  data.forEach(row => {
-    csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
-  });
-  
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', 'export_etudiants_taatj.csv');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  alert('Liste des étudiants exportée avec succès !');
-}
-
-// Fonction pour générer un PDF des étudiants
-function generateStudentsPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  // Ajouter un en-tête professionnel
-  doc.setFillColor(59, 130, 246); // Bleu TAAJ
-  doc.rect(0, 0, 210, 40, 'F');
-  
-  // Logo et titre
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont(undefined, 'bold');
-  doc.text('TAAJ Corp', 20, 25);
-  
-  doc.setFontSize(16);
-  doc.setFont(undefined, 'normal');
-  doc.text('Liste des Étudiants', 70, 25);
-  
-  // Date
-  doc.setTextColor(100, 100, 100);
-  doc.setFontSize(10);
-  doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} à ${new Date().toLocaleTimeString('fr-FR')}`, 140, 25);
-  
-  // Ligne de séparation
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.5);
-  doc.line(20, 45, 190, 45);
-  
-  // Statistiques
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text('Statistiques des Étudiants:', 20, 60);
-  
-  doc.setFontSize(11);
-  doc.setFont(undefined, 'normal');
-  
-  const totalStudents = students.length;
-  const activeStudents = students.filter(s => s.status === 'active').length;
-  const pendingStudents = students.filter(s => s.status === 'pending').length;
-  const inactiveStudents = students.filter(s => s.status === 'inactive').length;
-  
-  const stats = [
-    ['Total étudiants', totalStudents],
-    ['Actifs', activeStudents],
-    ['En attente', pendingStudents],
-    ['Inactifs', inactiveStudents]
-  ];
-  
-  let yPos = 70;
-  stats.forEach(([label, value]) => {
-    doc.text(`${label}:`, 30, yPos);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${value}`, 100, yPos);
-    doc.setFont(undefined, 'normal');
-    yPos += 8;
-  });
-  
-  // Ligne de séparation
-  doc.setDrawColor(200, 200, 200);
-  doc.line(20, yPos + 5, 190, yPos + 5);
-  yPos += 15;
-  
-  // Tableau des étudiants
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  doc.text('Liste Détaillée des Étudiants:', 20, yPos);
-  yPos += 15;
-  
-  // En-têtes de tableau
-  const headers = ['#', 'Nom Complet', 'Email', 'Programme', 'Niveau', 'Statut', "Date d'inscription"];
-  const headerWidths = [10, 50, 45, 30, 20, 25, 30];
-  
-  // Fond d'en-tête
-  doc.setFillColor(240, 240, 240);
-  doc.rect(20, yPos, 170, 10, 'F');
-  
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  
-  let xPos = 20;
-  headers.forEach((header, index) => {
-    doc.text(header, xPos + 2, yPos + 7);
-    xPos += headerWidths[index];
-  });
-  
-  // Lignes verticales du tableau
-  doc.setDrawColor(200, 200, 200);
-  xPos = 20;
-  headers.forEach((header, index) => {
-    doc.line(xPos, yPos, xPos, yPos + 10);
-    xPos += headerWidths[index];
-  });
-  doc.line(190, yPos, 190, yPos + 10);
-  
-  yPos += 10;
-  
-  // Données des étudiants
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(8);
-  doc.setFont(undefined, 'normal');
-  
-  students.forEach((student, index) => {
-    if (yPos > 270) {
-      doc.addPage();
-      yPos = 20;
-      
-      // Répéter l'en-tête sur la nouvelle page
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, 210, 40, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont(undefined, 'bold');
-      doc.text('TAAJ Corp', 20, 25);
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'normal');
-      doc.text('Liste des Étudiants (Suite)', 70, 25);
-      
-      // En-têtes de tableau sur nouvelle page
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, yPos, 170, 10, 'F');
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'bold');
-      
-      xPos = 20;
-      headers.forEach((header, index) => {
-        doc.text(header, xPos + 2, yPos + 7);
-        xPos += headerWidths[index];
-      });
-      
-      doc.setDrawColor(200, 200, 200);
-      xPos = 20;
-      headers.forEach((header, index) => {
-        doc.line(xPos, yPos, xPos, yPos + 10);
-        xPos += headerWidths[index];
-      });
-      doc.line(190, yPos, 190, yPos + 10);
-      
-      yPos += 10;
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(8);
-      doc.setFont(undefined, 'normal');
-    }
-    
-    // Ligne horizontale
-    doc.setDrawColor(200, 200, 200);
-    doc.line(20, yPos, 190, yPos);
-    
-    // Données de l'étudiant
-    const rowData = [
-      (index + 1).toString(),
-      student.name,
-      student.email,
-      student.prog,
-      student.level,
-      student.status === 'active' ? 'Actif' : (student.status === 'pending' ? 'En attente' : 'Inactif'),
-      student.date
-    ];
-    
-    xPos = 20;
-    rowData.forEach((data, index) => {
-      doc.text(data, xPos + 2, yPos + 6);
-      xPos += headerWidths[index];
-    });
-    
-    // Lignes verticales
-    doc.setDrawColor(200, 200, 200);
-    xPos = 20;
-    rowData.forEach((data, index) => {
-      doc.line(xPos, yPos, xPos, yPos + 10);
-      xPos += headerWidths[index];
-    });
-    doc.line(190, yPos, 190, yPos + 10);
-    
-    yPos += 10;
-  });
-  
-  // Pied de page
-  const finalY = yPos + 20;
-  if (finalY > 280) {
-    doc.addPage();
-    finalY = 20;
-  }
-  
-  doc.setDrawColor(200, 200, 200);
-  doc.line(20, finalY, 190, finalY);
-  
-  doc.setTextColor(100, 100, 100);
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'italic');
-  doc.text('Document généré par la plateforme TAAJ Corp - Tous droits réservés', 105, finalY + 10);
-  doc.autoTable({
-    head: ['Nom', 'Email', 'Programme', 'Niveau', 'Statut'],
-    body: tableData,
-    startY: yPos + 10,
-    theme: 'grid',
-    styles: { fontSize: 9 }
-  });
-  
-  // Sauvegarder le PDF
-  doc.save('liste_etudiants_taatj.pdf');
-  
-  alert('PDF des étudiants généré avec succès !');
-}
-
-renderTable();
-</script>
+        // Charger les étudiants au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudents();
+        });
+    </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>

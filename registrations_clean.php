@@ -54,13 +54,15 @@ try {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TAAJ Corp – Suivi des Inscriptions</title>
+<title>TAAJ Corp – Gestion des Inscriptions</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/css/modern.css" />
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
   :root {
     --sidebar-bg: #0F1623;
+    --sidebar-text: #94A3B8;
     --accent: #F59E0B;
     --accent-hover: #D97706;
     --page-bg: #F1F5F9;
@@ -68,15 +70,23 @@ try {
     --text-primary: #0F172A;
     --text-muted: #64748B;
     --border: #E2E8F0;
-    --green: #10B981; --red: #EF4444; --blue: #3B82F6;
+    --green: #10B981;
+    --red: #EF4444;
+    --blue: #3B82F6;
     --font: 'Plus Jakarta Sans', sans-serif;
   }
+
   html, body { height: 100%; font-family: var(--font); background: var(--page-bg); color: var(--text-primary); }
   .layout { display: flex; min-height: 100vh; }
 
-  /* SIDEBAR */
-  .sidebar { width: 230px; background: var(--sidebar-bg); display: flex; flex-direction: column; position: fixed; top:0; left:0; bottom:0; z-index:200; }
-  .sidebar-logo { display:flex; align-items:center; gap:10px; padding:20px 18px 16px; border-bottom:1px solid rgba(255,255,255,0.07); }
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px; background: var(--sidebar-bg);
+    display: flex; flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+  .logo-area { padding: 16px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .logo { display: flex; align-items: center; gap: 10px; }
   .logo-icon { width:36px; height:36px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:#fff; }
   .logo-text { font-size:15px; font-weight:700; color:#fff; }
   .sidebar-nav { flex:1; padding:14px 10px; overflow-y:auto; }
@@ -84,16 +94,12 @@ try {
   .nav-item { display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:#94A3B8; transition:background .18s,color .18s; margin-bottom:1px; border:none; background:transparent; width:100%; text-align:left; font-family:var(--font); text-decoration:none; }
   .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
   .nav-item.active { background:var(--accent); color:#fff; }
-  .nav-item svg { width:15px; height:15px; flex-shrink:0; }
-  .sidebar-bottom { padding:10px; border-top:1px solid rgba(255,255,255,0.07); }
-  .nav-item.danger:hover { background:rgba(239,68,68,0.12); color:#FCA5A5; }
 
-  /* MAIN */
-  .main { margin-left:230px; flex:1; display:flex; flex-direction:column; }
-
-  /* TOPBAR */
-  .topbar { background:#fff; border-bottom:1px solid var(--border); padding:11px 26px; display:flex; align-items:center; gap:14px; position:sticky; top:0; z-index:100; }
-  .search-wrap { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:var(--page-bg); border:1px solid var(--border); border-radius:10px; padding:7px 14px; }
+  /* ── MAIN CONTENT ── */
+  .main { flex:1; display: flex; flex-direction: column; }
+  .topbar { background:var(--card-bg); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .search-wrap { display:flex; align-items:center; gap:8px; background:var(--page-bg); border:1px solid var(--border); border-radius:10px; padding:8px 14px; }
+  .search-wrap svg { width:14px; height:14px; color:var(--text-muted); }
   .search-wrap input { border:none; background:transparent; outline:none; font-family:var(--font); font-size:13px; color:var(--text-primary); width:100%; }
   .search-wrap input::placeholder { color:var(--text-muted); }
   .topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
@@ -101,8 +107,7 @@ try {
   .notif-dot { position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--red); border:2px solid #fff; }
   .user-block { display:flex; align-items:center; gap:10px; }
   .uname { font-size:13px; font-weight:600; color:var(--text-primary); }
-  .urole { font-size:11px; color:var(--text-muted); }
-  .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#667EEA,#764BA2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+  .uavatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#667EEA,#764BA2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; }
 
   /* CONTENT */
   .content { padding:24px 26px; flex:1; }
@@ -146,11 +151,11 @@ try {
   /* LAYOUT */
   .main-grid { display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; }
 
-  /* LEFT PANEL */
-  .list-panel { background:#fff; border-radius:14px; border:1px solid var(--border); overflow:hidden; animation:fadeUp .4s .1s ease both; }
-
-  .list-toolbar { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-  .list-search { display:flex; align-items:center; gap:8px; background:var(--page-bg); border:1px solid var(--border); border-radius:9px; padding:8px 14px; flex:1; max-width:320px; }
+  /* LIST CARD */
+  .list-card { background:#fff; border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .list-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .list-title { font-size:15px; font-weight:700; color:var(--text-primary); }
+  .list-search { display:flex; align-items:center; gap:8px; background:var(--page-bg); border:1px solid var(--border); border-radius:8px; padding:6px 10px; }
   .list-search input { border:none; background:transparent; outline:none; font-family:var(--font); font-size:13px; color:var(--text-primary); width:100%; }
   .list-search input::placeholder { color:var(--text-muted); }
   .filter-tabs { display:flex; gap:4px; margin-left:auto; }
@@ -160,25 +165,15 @@ try {
 
   /* INSCRIPTION ITEM */
   .insc-item { display:flex; align-items:center; gap:14px; padding:14px 18px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .14s; }
-  .insc-item:last-child { border-bottom:none; }
-  .insc-item:hover { background:#FAFBFC; }
-  .insc-item.selected { background:#FFFBEB; border-left:3px solid var(--accent); }
-
-  .insc-icon { width:40px; height:40px; border-radius:11px; background:#ECFDF5; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .insc-icon.pending { background:#FFFBEB; }
-  .insc-icon.inactive { background:#FEF2F2; }
-
-  .insc-info { flex:1; min-width:0; }
-  .insc-name { font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:7px; }
-  .insc-ref { font-size:11px; font-weight:600; color:var(--accent); background:#FFFBEB; padding:2px 7px; border-radius:5px; }
-  .insc-sub { font-size:12px; color:var(--text-muted); margin-top:3px; }
-
-  .insc-right { text-align:right; flex-shrink:0; }
-  .insc-amount { font-size:14px; font-weight:700; color:var(--text-primary); }
-  .insc-status { font-size:11.5px; font-weight:700; margin-top:3px; }
-  .paid    { color:var(--green); }
-  .pending { color:var(--accent); }
-  .unpaid  { color:var(--red); }
+  .insc-item:hover { background:var(--page-bg); }
+  .insc-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+  .insc-name { font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:2px; }
+  .insc-sub { font-size:12px; color:var(--text-muted); }
+  .insc-amount { font-size:13px; font-weight:700; color:var(--text-primary); text-align:right; margin-bottom:2px; }
+  .insc-status { font-size:11px; font-weight:600; padding:3px 8px; border-radius:12px; text-align:right; display:inline-block; }
+  .paid { background:#ECFDF5; color:#10B981; }
+  .pending { background:#FFFBEB; color:#F59E0B; }
+  .unpaid { background:#FEF2F2; color:#EF4444; }
 
   .arrow-btn { width:28px; height:28px; border-radius:8px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-muted); flex-shrink:0; transition:all .15s; }
   .arrow-btn:hover { border-color:var(--accent); color:var(--accent); }
@@ -193,19 +188,17 @@ try {
   /* RIGHT PANEL */
   .right-col { display:flex; flex-direction:column; gap:14px; }
 
-  .side-card { background:#fff; border-radius:14px; border:1px solid var(--border); padding:20px; animation:fadeUp .4s .18s ease both; }
-
-  .side-card-title { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:16px; }
-
-  .pay-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-  .pay-label { font-size:13px; color:var(--text-muted); font-weight:500; }
-  .pay-val { font-size:14px; font-weight:800; }
-  .pay-val.green { color:var(--green); }
-  .pay-val.amber { color:var(--accent); }
-
-  .progress-bar { height:10px; background:var(--border); border-radius:20px; overflow:hidden; margin:10px 0 6px; }
-  .progress-fill { height:100%; border-radius:20px; background:var(--green); transition:width .6s ease; }
-  .progress-label { font-size:11.5px; color:var(--text-muted); text-align:center; }
+  /* SIDE CARD */
+  .side-card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:18px; animation:fadeUp .4s .12s ease both; }
+  .side-card-title { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:14px; }
+  .pay-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .pay-label { font-size:12px; color:var(--text-muted); font-weight:500; }
+  .pay-val { font-size:14px; font-weight:700; }
+  .green { color:var(--green); }
+  .amber { color:var(--accent); }
+  .progress-bar { height:6px; background:var(--border); border-radius:3px; margin:12px 0; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--accent)); border-radius:3px; transition:width .5s ease; }
+  .progress-label { font-size:11px; color:var(--text-muted); text-align:center; }
 
   /* RAPPEL CARD */
   .rappel-card { background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:14px; padding:18px; animation:fadeUp .4s .24s ease both; }
@@ -214,13 +207,13 @@ try {
   .rappel-text { font-size:12.5px; color:#78350F; line-height:1.55; margin-bottom:14px; }
 
   /* DETAIL CARD */
-  .detail-card { background:#fff; border-radius:14px; border:1px solid var(--border); padding:20px; animation:fadeUp .4s .28s ease both; }
-  .detail-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+  .detail-card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:18px; animation:fadeUp .4s .36s ease both; }
+  .detail-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
   .detail-av { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0; }
-  .detail-name { font-size:14px; font-weight:700; color:var(--text-primary); }
-  .detail-prog { font-size:12px; color:var(--text-muted); margin-top:2px; }
-  .detail-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
-  .detail-row:last-child { border-bottom:none; }
+  .detail-name { font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:2px; }
+  .detail-prog { font-size:12px; color:var(--text-muted); }
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .detail-item { display:flex; flex-direction:column; gap:4px; }
   .detail-key { color:var(--text-muted); font-weight:500; }
   .detail-val { font-weight:600; color:var(--text-primary); text-align:right; }
   .detail-actions { display:flex; gap:8px; margin-top:14px; }
@@ -281,53 +274,45 @@ try {
 </head>
 <body>
 <div class="layout">
-
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">T</div>
-      <span class="logo-text">TAAJ Corp</span>
+    <div class="logo-area">
+      <div class="logo">
+        <div class="logo-icon">T</div>
+        <div class="logo-text">TAAJ Corp</div>
+      </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Principal</div>
+      <div class="nav-section-label">MENU</div>
       <a href="dashboard.php" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Tableau de bord
       </a>
       <a href="students.php" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Étudiants
       </a>
+      <a href="registrations.php" class="nav-item active">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Inscriptions
+      </a>
       <a href="programs.php" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Programmes
       </a>
-      <div class="nav-section-label" style="margin-top:10px;">Gestion</div>
-      <button class="nav-item active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Inscriptions
-      </button>
       <a href="stats.php" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Statistiques
       </a>
     </nav>
-    <div class="sidebar-bottom">
-      <button class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 1.79 12.88L19 17l-1.79.71A8 8 0 0 1 4.93 4.93"/></svg>
-        Paramètres
-      </button>
-      <a href="logout.php" class="nav-item danger" style="color:#EF4444;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Déconnexion
-      </a>
-    </div>
   </aside>
 
-  <div class="main">
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <!-- TOPBAR -->
     <header class="topbar">
       <div class="search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input placeholder="Rechercher un étudiant, un cours..." />
       </div>
       <div class="topbar-right">
@@ -336,19 +321,17 @@ try {
           <div class="notif-dot"></div>
         </div>
         <div class="user-block">
-          <div>
-            <div class="uname">Johan Kabo</div>
-            <div class="urole">Administrateur</div>
-          </div>
-          <div class="avatar">JK</div>
+          <div class="uavatar">JD</div>
+          <div class="uname">John Doe</div>
         </div>
       </div>
     </header>
 
-    <div class="content">
+    <!-- CONTENT -->
+    <section class="content">
       <div class="page-header">
         <div>
-          <div class="page-title">Suivi des Inscriptions</div>
+          <div class="page-title">Gestion des Inscriptions</div>
           <div class="page-sub">Gérez les dossiers d'inscription et les paiements.</div>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -371,28 +354,41 @@ try {
       <div class="stats-row">
         <div class="stat-chip">
           <div class="chip-dot" style="background:#3B82F6;"></div>
-          <div><div class="chip-val"><?php echo $totalRegistrations; ?></div><div class="chip-lbl">Total inscriptions</div></div>
+          <div>
+            <div class="chip-val"><?php echo $totalRegistrations; ?></div>
+            <div class="chip-lbl">Total</div>
+          </div>
         </div>
         <div class="stat-chip">
           <div class="chip-dot" style="background:#10B981;"></div>
-          <div><div class="chip-val"><?php echo $paidRegistrations; ?></div><div class="chip-lbl">Payées</div></div>
+          <div>
+            <div class="chip-val"><?php echo $paidRegistrations; ?></div>
+            <div class="chip-lbl">Payés</div>
+          </div>
         </div>
         <div class="stat-chip">
           <div class="chip-dot" style="background:#F59E0B;"></div>
-          <div><div class="chip-val"><?php echo $pendingRegistrations; ?></div><div class="chip-lbl">En attente</div></div>
+          <div>
+            <div class="chip-val"><?php echo $pendingRegistrations; ?></div>
+            <div class="chip-lbl">En attente</div>
+          </div>
         </div>
         <div class="stat-chip">
           <div class="chip-dot" style="background:#EF4444;"></div>
-          <div><div class="chip-val"><?php echo $unpaidRegistrations; ?></div><div class="chip-lbl">Non payée</div></div>
+          <div>
+            <div class="chip-val"><?php echo $unpaidRegistrations; ?></div>
+            <div class="chip-lbl">Impayés</div>
+          </div>
         </div>
       </div>
 
+      <!-- MAIN GRID -->
       <div class="main-grid">
-        <!-- LEFT: LIST -->
-        <div class="list-panel">
-          <div class="list-toolbar">
+        <!-- LIST CARD -->
+        <div class="list-card">
+          <div class="list-header">
+            <div class="list-title">Liste des Inscriptions</div>
             <div class="list-search">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               <input id="searchInput" placeholder="Rechercher une inscription..." oninput="filterList()" />
             </div>
             <div class="filter-tabs">
@@ -467,23 +463,44 @@ try {
                   <div class="detail-prog" id="detailProg"></div>
                 </div>
               </div>
-              <div class="detail-row"><span class="detail-key">Référence</span><span class="detail-val" id="dRef"></span></div>
-              <div class="detail-row"><span class="detail-key">Programme</span><span class="detail-val" id="dProg"></span></div>
-              <div class="detail-row"><span class="detail-key">Niveau</span><span class="detail-val" id="dLevel"></span></div>
-              <div class="detail-row"><span class="detail-key">Montant</span><span class="detail-val" id="dAmount"></span></div>
-              <div class="detail-row"><span class="detail-key">Statut paiement</span><span class="detail-val" id="dStatus"></span></div>
-              <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val" id="dDate"></span></div>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <div class="detail-key">Référence</div>
+                  <div class="detail-val" id="dRef"></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-key">Programme</div>
+                  <div class="detail-val" id="dProg"></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-key">Niveau</div>
+                  <div class="detail-val" id="dLevel"></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-key">Montant</div>
+                  <div class="detail-val" id="dAmount"></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-key">Statut</div>
+                  <div class="detail-val" id="dStatus"></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-key">Date</div>
+                  <div class="detail-val" id="dDate"></div>
+                </div>
+              </div>
               <div class="detail-actions">
-                <button class="btn-approve">✓ Valider</button>
-                <button class="btn-reject">✕ Rejeter</button>
+                <button class="btn-approve">Approuver</button>
+                <button class="btn-reject">Rejeter</button>
               </div>
             </div>
           </div>
 
         </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
+</div>
 </div>
 
 <script>
@@ -592,58 +609,6 @@ function renderList() {
   });
 
   container.innerHTML = html;
-  
-  // Mettre à jour le résumé des paiements
-  updatePaymentSummary();
-}
-
-// Fonction pour mettre à jour le résumé des paiements
-function updatePaymentSummary() {
-  if (!registrations || registrations.length === 0) {
-    // Valeurs par défaut si aucune inscription
-    document.querySelector('.pay-val.green').textContent = '0 FCFA';
-    document.querySelector('.pay-val.amber').textContent = '0 FCFA';
-    document.querySelector('.pay-val[style*="color:var(--red)"]').textContent = '0 FCFA';
-    document.querySelector('.progress-fill').style.width = '0%';
-    document.querySelector('.progress-label').textContent = '0% des frais de scolarité réglés';
-    return;
-  }
-  
-  // Calculer les montants réels
-  let totalPaid = 0;
-  let totalPending = 0;
-  let totalUnpaid = 0;
-  
-  registrations.forEach(registration => {
-    const amount = parseFloat(registration.amount) || 0;
-    switch (registration.status) {
-      case 'paid':
-        totalPaid += amount;
-        break;
-      case 'pending':
-        totalPending += amount;
-        break;
-      case 'unpaid':
-        totalUnpaid += amount;
-        break;
-    }
-  });
-  
-  // Formater les montants
-  const formatAmount = (amount) => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
-  };
-  
-  // Mettre à jour l'affichage
-  document.querySelector('.pay-val.green').textContent = formatAmount(totalPaid);
-  document.querySelector('.pay-val.amber').textContent = formatAmount(totalPending);
-  document.querySelector('.pay-val[style*="color:var(--red)"]').textContent = formatAmount(totalUnpaid);
-  
-  // Calculer et mettre à jour la progression
-  const totalAmount = totalPaid + totalPending + totalUnpaid;
-  const percentage = totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0;
-  document.querySelector('.progress-fill').style.width = percentage + '%';
-  document.querySelector('.progress-label').textContent = percentage + '% des frais de scolarité réglés';
 }
 
 // Fonctions utilitaires

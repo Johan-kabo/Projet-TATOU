@@ -17,23 +17,49 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM students");
     $totalStudents = $stmt->fetch()['total'];
 
+    // Étudiants par statut
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM students WHERE status = 'active'");
+    $activeStudents = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM students WHERE status = 'pending'");
+    $pendingStudents = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM students WHERE status = 'inactive'");
+    $inactiveStudents = $stmt->fetch()['total'];
+
     // Programmes actifs
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM programs WHERE active = 1");
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM programs");
     $activePrograms = $stmt->fetch()['total'];
 
-    // Inscriptions validées
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM registrations WHERE status = 'validated'");
-    $validatedRegistrations = $stmt->fetch()['total'];
+    // Inscriptions par statut
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM registrations");
+    $totalRegistrations = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM registrations WHERE payment_status = 'paid'");
+    $paidRegistrations = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM registrations WHERE payment_status = 'pending'");
+    $pendingRegistrations = $stmt->fetch()['total'];
+    
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM registrations WHERE payment_status = 'unpaid'");
+    $unpaidRegistrations = $stmt->fetch()['total'];
 
-    // Revenus totaux (simulation)
-    $totalRevenue = 1240000;
+    // Revenus totaux (somme des montants payés)
+    $stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM registrations WHERE payment_status = 'paid'");
+    $totalRevenue = $stmt->fetch()['total'];
 
 } catch (PDOException $e) {
     // Valeurs par défaut en cas d'erreur
-    $totalStudents = 124;
-    $activePrograms = 7;
-    $validatedRegistrations = 89;
-    $totalRevenue = 1240000;
+    $totalStudents = 0;
+    $activeStudents = 0;
+    $pendingStudents = 0;
+    $inactiveStudents = 0;
+    $activePrograms = 0;
+    $totalRegistrations = 0;
+    $paidRegistrations = 0;
+    $pendingRegistrations = 0;
+    $unpaidRegistrations = 0;
+    $totalRevenue = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -363,7 +389,7 @@ try {
           <div class="kpi-value"><?php echo number_format($totalStudents); ?></div>
           <div class="kpi-trend trend-up">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-            +12% ce mois
+            <?php echo $totalStudents > 0 ? round(($activeStudents / $totalStudents) * 100, 1) : 0; ?>% actifs
           </div>
         </div>
 
@@ -374,11 +400,11 @@ try {
             </div>
             <span class="kpi-dots">···</span>
           </div>
-          <div class="kpi-label">Nouvelles Inscriptions</div>
-          <div class="kpi-value"><?php echo $validatedRegistrations; ?></div>
+          <div class="kpi-label">Total Inscriptions</div>
+          <div class="kpi-value"><?php echo number_format($totalRegistrations); ?></div>
           <div class="kpi-trend trend-up">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-            +5% cette semaine
+            <?php echo $totalRegistrations > 0 ? round(($paidRegistrations / $totalRegistrations) * 100, 1) : 0; ?>% payées
           </div>
         </div>
 
@@ -391,9 +417,9 @@ try {
           </div>
           <div class="kpi-label">Programmes Actifs</div>
           <div class="kpi-value"><?php echo $activePrograms; ?></div>
-          <div class="kpi-trend trend-down">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            -2% vs trimestre
+          <div class="kpi-trend trend-up">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+            <?php echo $activePrograms > 0 ? round(($totalStudents / $activePrograms), 1) : 0; ?> étudiants/programme
           </div>
         </div>
 
@@ -404,11 +430,11 @@ try {
             </div>
             <span class="kpi-dots">···</span>
           </div>
-          <div class="kpi-label">Revenus Estimés</div>
+          <div class="kpi-label">Revenus Totaux</div>
           <div class="kpi-value sm"><?php echo number_format($totalRevenue, 0, ' ', ' '); ?> FCFA</div>
           <div class="kpi-trend trend-up">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-            +18% ce mois
+            <?php echo $paidRegistrations > 0 ? number_format($totalRevenue / $paidRegistrations, 0, ' ', ' ') : 0; ?> FCFA/moy
           </div>
         </div>
       </div>
@@ -518,6 +544,161 @@ try {
       }
     }
   });
+</script>
+
+<script>
+// Synchronisation en temps réel avec les APIs
+let studentsData = [];
+let registrationsData = [];
+
+// Fonction pour charger les données depuis les APIs
+async function loadRealTimeData() {
+  try {
+    // Charger les étudiants
+    const studentsResponse = await fetch('api_crud_students.php');
+    const studentsText = await studentsResponse.text();
+    
+    if (studentsText) {
+      const studentsResult = JSON.parse(studentsText);
+      if (studentsResult.success) {
+        studentsData = studentsResult.students || [];
+        updateStudentStats();
+      }
+    }
+    
+    // Charger les inscriptions
+    const registrationsResponse = await fetch('api_crud_registrations.php');
+    const registrationsText = await registrationsResponse.text();
+    
+    if (registrationsText) {
+      const registrationsResult = JSON.parse(registrationsText);
+      if (registrationsResult.success) {
+        registrationsData = registrationsResult.registrations || [];
+        updateRegistrationStats();
+      }
+    }
+    
+  } catch (error) {
+    console.error('Erreur de chargement des données:', error);
+  }
+}
+
+// Mettre à jour les statistiques des étudiants
+function updateStudentStats() {
+  const activeCount = studentsData.filter(s => s.status === 'active').length;
+  const totalCount = studentsData.length;
+  
+  // Mettre à jour le KPI Total Étudiants
+  const totalStudentsEl = document.querySelector('.kpi-card:nth-child(1) .kpi-value');
+  if (totalStudentsEl) {
+    totalStudentsEl.textContent = totalCount.toLocaleString();
+  }
+  
+  // Mettre à jour le pourcentage actif
+  const activeTrendEl = document.querySelector('.kpi-card:nth-child(1) .kpi-trend');
+  if (activeTrendEl && totalCount > 0) {
+    const percentage = Math.round((activeCount / totalCount) * 100);
+    activeTrendEl.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+      ${percentage}% actifs
+    `;
+  }
+}
+
+// Mettre à jour les statistiques des inscriptions
+function updateRegistrationStats() {
+  const paidCount = registrationsData.filter(r => r.payment_status === 'paid').length;
+  const totalCount = registrationsData.length;
+  
+  // Mettre à jour le KPI Total Inscriptions
+  const totalRegistrationsEl = document.querySelector('.kpi-card:nth-child(2) .kpi-value');
+  if (totalRegistrationsEl) {
+    totalRegistrationsEl.textContent = totalCount.toLocaleString();
+  }
+  
+  // Mettre à jour le pourcentage payé
+  const paidTrendEl = document.querySelector('.kpi-card:nth-child(2) .kpi-trend');
+  if (paidTrendEl && totalCount > 0) {
+    const percentage = Math.round((paidCount / totalCount) * 100);
+    paidTrendEl.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+      ${percentage}% payées
+    `;
+  }
+  
+  // Mettre à jour le graphique Chart.js avec les vraies données
+  updateChartWithRealData();
+}
+
+// Mettre à jour le graphique Chart.js avec les vraies données
+function updateChartWithRealData() {
+  if (window.enrollmentChart && registrationsData.length > 0) {
+    // Grouper les inscriptions par mois
+    const monthlyData = {};
+    const currentYear = new Date().getFullYear();
+    
+    // Initialiser les 6 derniers mois
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+      monthlyData[monthKey] = { total: 0, paid: 0 };
+    }
+    
+    // Remplir avec les vraies données
+    registrationsData.forEach(registration => {
+      const date = new Date(registration.registration_date || registration.date || new Date());
+      const monthKey = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+      
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].total++;
+        if (registration.payment_status === 'paid') {
+          monthlyData[monthKey].paid++;
+        }
+      }
+    });
+    
+    // Mettre à jour le graphique
+    const labels = Object.keys(monthlyData);
+    const totalData = labels.map(label => monthlyData[label].total);
+    const paidData = labels.map(label => monthlyData[label].paid);
+    
+    window.enrollmentChart.data.labels = labels;
+    window.enrollmentChart.data.datasets[0].data = totalData;
+    window.enrollmentChart.data.datasets[1].data = paidData;
+    window.enrollmentChart.update();
+  }
+}
+
+// Fonction pour rafraîchir manuellement
+function refreshDashboard() {
+  loadRealTimeData();
+}
+
+// Charger les données au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+  // Charger les données initiales
+  setTimeout(loadRealTimeData, 1000);
+  
+  // Rafraîchir automatiquement toutes les 30 secondes
+  setInterval(loadRealTimeData, 30000);
+  
+  // Ajouter un bouton de rafraîchissement si nécessaire
+  const refreshBtn = document.querySelector('.btn-primary');
+  if (refreshBtn && refreshBtn.textContent.includes('rapport')) {
+    refreshBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      refreshDashboard();
+      // Générer le rapport (fonction existante)
+      generateReport();
+    });
+  }
+});
+
+// Fonction pour générer un rapport améliorée
+function generateReport() {
+  window.open('export_dashboard.php', '_blank');
+}
 </script>
 </body>
 </html>
