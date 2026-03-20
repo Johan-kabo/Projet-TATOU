@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Projet TATOU - Gestion des Inscriptions
 
 Application web de gestion des inscriptions étudiantes pour TAAJ Corp.
@@ -77,3 +78,7 @@ Projet TATOU/
 ## Licence
 
 Propriété de TAAJ Corp
+=======
+# Projet-TAAJ
+Plateforme de gestion des inscription d'un etablissement
+>>>>>>> beb5c4ee53bd57aa66e90a936f46d5b2073d5e88
