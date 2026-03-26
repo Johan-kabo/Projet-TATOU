@@ -124,6 +124,7 @@ try {
     font-size: 16px; font-weight: 800; color: #fff;
   }
   .logo-text { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.2px; }
+  .sidebar-ecole-logo { height: 50px; width: auto; margin-left: auto; border-radius: 6px; }
 
   .sidebar-nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
   .nav-section-label {
@@ -302,6 +303,7 @@ try {
     <div class="sidebar-logo">
       <div class="logo-icon">T</div>
       <span class="logo-text">TAAJ Corp</span>
+      <img src="assets/images/logo IME.png" alt="IME Business and Engineering School" class="sidebar-ecole-logo" onerror="this.style.display='none';">
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Principal</div>

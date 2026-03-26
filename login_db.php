@@ -98,16 +98,8 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
   .form-wrap { width: 100%; max-width: 420px; }
 
-  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
-  .brand-logo {
-    width: 44px; height: 44px; 
-    border-radius: 12px; 
-    display: flex; align-items: center;
-    justify-content: center; 
-    flex-shrink: 0;
-    object-fit: cover;
-    border: 2px solid var(--accent);
-  }
+  .brand { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; }
+  .brand-left { display: flex; align-items: center; gap: 12px; }
   .brand-icon {
     width: 44px; height: 44px; background: var(--accent);
     border-radius: 12px; display: flex; align-items: center;
@@ -115,6 +107,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     flex-shrink: 0;
   }
   .brand-name { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+  .ecole-logo { width: 80px; height: 80px; }
 
   .form-title { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-bottom: 8px; }
   .form-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; }
@@ -284,9 +277,11 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
       <!-- BRAND -->
       <div class="brand">
-        <img src="assets/images/logo-etablissement.png" alt="Logo Établissement" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="brand-icon" style="display:none;">T</div>
-        <span class="brand-name">TAAJ Corp</span>
+        <div class="brand-left">
+          <div class="brand-icon">T</div>
+          <span class="brand-name">TAAJ Corp</span>
+        </div>
+        <img src="assets/images/logo IME.png" alt="IME Business and Engineering School" class="ecole-logo" onerror="this.style.display='none';">
       </div>
 
       <h1 class="form-title">Gestion Des Inscriptions</h1>
