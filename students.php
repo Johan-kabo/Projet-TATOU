@@ -547,7 +547,7 @@ try {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
               Filtres
             </button>
-            <button class="btn-pdf">
+            <button class="btn-pdf" onclick="generateModernStudentsPDF()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Générer PDF
             </button>
@@ -1188,6 +1188,447 @@ try {
             const saveBtn = document.querySelector('.modal-footer .btn-primary');
             saveBtn.innerHTML = 'Enregistrer';
             saveBtn.onclick = saveStudent;
+        }
+
+        // Fonction pour générer un PDF des étudiants avec jsPDF
+        function generateStudentsPDF() {
+            showNotification('📄 Génération du PDF en cours...', 'success');
+            
+            // Récupérer les données des étudiants
+            fetch('api_crud_students.php?action=get')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        createPDFWithStudents(data.students);
+                    } else {
+                        showNotification('❌ Erreur: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Erreur: ' + error.message, 'error');
+                });
+        }
+
+        // Fonction pour créer le PDF avec jsPDF
+        function createPDFWithStudents(studentsData) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Variables pour le design
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            let yPosition = 20;
+            
+            // Header avec design jaune
+            doc.setFillColor(255, 193, 7); // Jaune
+            doc.rect(0, 0, pageWidth, 60, 'F');
+            
+            // Titre
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(24);
+            doc.setFont(undefined, 'bold');
+            doc.text('RAPPORT DES ÉTUDIANTS', pageWidth / 2, 25, { align: 'center' });
+            
+            // Sous-titre
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, 35, { align: 'center' });
+            
+            // Date
+            doc.text('Généré le: ' + new Date().toLocaleDateString('fr-FR'), pageWidth / 2, 45, { align: 'center' });
+            
+            // Statistiques
+            yPosition = 80;
+            doc.setFillColor(255, 235, 156); // Jaune clair
+            doc.rect(15, yPosition - 10, pageWidth - 30, 30, 'F');
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Statistiques:', 20, yPosition);
+            
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Total: ${studentsData.length} étudiants`, 20, yPosition + 10);
+            doc.text(`Actifs: ${studentsData.filter(s => s.status === 'active').length}`, 80, yPosition + 10);
+            doc.text(`En attente: ${studentsData.filter(s => s.status === 'pending').length}`, 140, yPosition + 10);
+            
+            yPosition += 40;
+            
+            // En-têtes du tableau
+            doc.setFillColor(255, 193, 7); // Jaune
+            doc.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('Nom', 20, yPosition);
+            doc.text('Email', 60, yPosition);
+            doc.text('Programme', 120, yPosition);
+            doc.text('Statut', 170, yPosition);
+            
+            yPosition += 10;
+            
+            // Données des étudiants
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            
+            studentsData.forEach((student, index) => {
+                // Vérifier si on a besoin d'une nouvelle page
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = 20;
+                    
+                    // Répéter l'en-tête sur la nouvelle page
+                    doc.setFillColor(255, 193, 7);
+                    doc.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Nom', 20, yPosition);
+                    doc.text('Email', 60, yPosition);
+                    doc.text('Programme', 120, yPosition);
+                    doc.text('Statut', 170, yPosition);
+                    yPosition += 10;
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                }
+                
+                // Ligne de séparation
+                doc.setDrawColor(200, 200, 200);
+                doc.line(15, yPosition - 2, pageWidth - 15, yPosition - 2);
+                
+                // Alternance de couleurs
+                if (index % 2 === 0) {
+                    doc.setFillColor(255, 248, 220); // Jaune très clair
+                    doc.rect(15, yPosition - 2, pageWidth - 30, 8, 'F');
+                }
+                
+                // Données de l'étudiant
+                const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+                const email = student.email || 'N/A';
+                const program = student.program_name || 'N/A';
+                const status = student.status || 'N/A';
+                
+                doc.text(fullName.substring(0, 25), 20, yPosition + 5);
+                doc.text(email.substring(0, 25), 60, yPosition + 5);
+                doc.text(program.substring(0, 25), 120, yPosition + 5);
+                
+                // Statut avec couleur
+                if (status === 'active') {
+                    doc.setTextColor(0, 128, 0);
+                    doc.text('Actif', 170, yPosition + 5);
+                } else if (status === 'pending') {
+                    doc.setTextColor(255, 140, 0);
+                    doc.text('En attente', 170, yPosition + 5);
+                } else {
+                    doc.setTextColor(255, 0, 0);
+                    doc.text('Inactif', 170, yPosition + 5);
+                }
+                doc.setTextColor(0, 0, 0);
+                
+                yPosition += 12;
+            });
+            
+            // Footer
+            const footerY = pageHeight - 20;
+            doc.setFillColor(255, 193, 7); // Jaune
+            doc.rect(0, footerY - 10, pageWidth, 20, 'F');
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, footerY, { align: 'center' });
+            doc.text('Page ' + doc.internal.getNumberOfPages(), pageWidth / 2, footerY + 8, { align: 'center' });
+            
+            // Télécharger le PDF
+            const fileName = `rapport_etudiants_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
+            
+            showNotification('✅ PDF généré et téléchargé avec succès!', 'success');
+        }
+
+        // Fonction pour exporter les étudiants (CSV) avec téléchargement direct
+        function exportStudents() {
+            showNotification('📊 Export CSV en cours...', 'success');
+            
+            // Récupérer les données et générer le CSV directement
+            fetch('api_crud_students.php?action=get')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        downloadCSVFile(data.students, 'etudiants');
+                    } else {
+                        showNotification('❌ Erreur: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Erreur: ' + error.message, 'error');
+                });
+        }
+
+        // Fonction pour télécharger un fichier CSV directement
+        function downloadCSVFile(data, filename) {
+            // Créer le contenu CSV
+            let csvContent = '\uFEFF'; // BOM pour UTF-8
+            csvContent += 'Nom,Email,Téléphone,Programme,Niveau,Date de naissance,Statut,Carte étudiant\n';
+            
+            data.forEach(student => {
+                const row = [
+                    `"${student.first_name || ''} ${student.last_name || ''}"`,
+                    `"${student.email || ''}"`,
+                    `"${student.phone || ''}"`,
+                    `"${student.program_name || ''}"`,
+                    `"${student.level || ''}"`,
+                    `"${student.date_of_birth || ''}"`,
+                    `"${student.status || ''}"`,
+                    `"${student.student_id_card || ''}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Créer le Blob et télécharger
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('✅ Export CSV téléchargé avec succès!', 'success');
+        }
+
+        // Fonction pour générer un PDF moderne des étudiants avec style différent
+        function generateModernStudentsPDF() {
+            showNotification('📄 Génération du PDF moderne en cours...', 'success');
+            
+            // Récupérer les données des étudiants
+            fetch('api_crud_students.php?action=get')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        createModernPDF(data.students);
+                    } else {
+                        showNotification('❌ Erreur: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Erreur: ' + error.message, 'error');
+                });
+        }
+
+        // Fonction pour créer un PDF avec style épuré et moins de jaune
+        function createModernPDF(studentsData) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Variables pour le design
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            let yPosition = 20;
+            
+            // Header épuré avec juste une ligne jaune
+            doc.setDrawColor(255, 193, 7);
+            doc.setLineWidth(3);
+            doc.line(15, 25, pageWidth - 15, 25);
+            
+            // Titre épuré
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(24);
+            doc.setFont(undefined, 'bold');
+            doc.text('LISTE DES ÉTUDIANTS', pageWidth / 2, 40, { align: 'center' });
+            
+            // Sous-titre simple
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, 50, { align: 'center' });
+            doc.text('Généré le: ' + new Date().toLocaleDateString('fr-FR'), pageWidth / 2, 58, { align: 'center' });
+            
+            // Ligne de séparation
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(1);
+            doc.line(15, 70, pageWidth - 15, 70);
+            
+            yPosition = 85;
+            
+            // Section statistique épurée
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Vue d\'ensemble', 15, yPosition);
+            
+            yPosition += 15;
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            
+            const totalStudents = studentsData.length;
+            const activeStudents = studentsData.filter(s => s.status === 'active').length;
+            const pendingStudents = studentsData.filter(s => s.status === 'pending').length;
+            const inactiveStudents = studentsData.filter(s => s.status === 'inactive').length;
+            
+            // Statistiques sur une ligne
+            doc.text(`Total: ${totalStudents} | Actifs: ${activeStudents} | En attente: ${pendingStudents} | Inactifs: ${inactiveStudents}`, 15, yPosition);
+            
+            yPosition += 20;
+            
+            // Ligne de séparation avant tableau
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(1);
+            doc.line(15, yPosition, pageWidth - 15, yPosition);
+            
+            yPosition += 10;
+            
+            // Tableau épuré sans arrondis
+            const headers = ['Étudiant', 'Email', 'Programme', 'Statut'];
+            const colWidths = [50, 55, 55, 30]; // Largeurs ajustées pour total 190px
+            const startX = 15;
+            const tableWidth = pageWidth - 30; // Largeur totale disponible
+            
+            // Header du tableau - fond jaune très subtil
+            doc.setFillColor(255, 253, 235); // Jaune ultra-clair
+            doc.rect(startX, yPosition - 5, tableWidth, 10, 'F');
+            
+            // Bordure header
+            doc.setDrawColor(255, 193, 7);
+            doc.setLineWidth(1);
+            doc.rect(startX, yPosition - 5, tableWidth, 10);
+            
+            // Texte header
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            
+            let currentX = startX;
+            headers.forEach((header, index) => {
+                const colWidth = (colWidths[index] / 190) * tableWidth; // Proportionnel
+                doc.text(header, currentX + 3, yPosition + 3);
+                currentX += colWidth;
+            });
+            
+            yPosition += 15;
+            
+            // Ligne après header
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(1);
+            doc.line(startX, yPosition - 5, startX + tableWidth, yPosition - 5);
+            
+            // Données du tableau
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9); // Réduire la police pour plus d'espace
+            doc.setFont(undefined, 'normal');
+            
+            studentsData.forEach((student, index) => {
+                // Vérifier si on a besoin d'une nouvelle page
+                if (yPosition > pageHeight - 50) {
+                    doc.addPage();
+                    yPosition = 30;
+                    
+                    // Répéter l'en-tête sur la nouvelle page
+                    doc.setFillColor(255, 253, 235);
+                    doc.rect(startX, yPosition - 5, tableWidth, 10, 'F');
+                    doc.setDrawColor(255, 193, 7);
+                    doc.rect(startX, yPosition - 5, tableWidth, 10);
+                    
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'bold');
+                    
+                    currentX = startX;
+                    headers.forEach((header, i) => {
+                        const colWidth = (colWidths[i] / 190) * tableWidth;
+                        doc.text(header, currentX + 3, yPosition + 3);
+                        currentX += colWidth;
+                    });
+                    
+                    yPosition += 15;
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(startX, yPosition - 5, startX + tableWidth, yPosition - 5);
+                    
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                }
+                
+                // Ligne de séparation subtile
+                if (index % 2 === 0) {
+                    doc.setFillColor(245, 245, 245); // Gris très clair
+                    doc.rect(startX, yPosition - 3, tableWidth, 8, 'F');
+                }
+                
+                // Bordure de la ligne
+                doc.setDrawColor(230, 230, 230);
+                doc.setLineWidth(0.5);
+                doc.rect(startX, yPosition - 3, tableWidth, 8);
+                
+                // Données de l'étudiant
+                const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+                const email = student.email || 'N/A';
+                const program = student.program_name || 'N/A';
+                const status = student.status || 'N/A';
+                
+                currentX = startX;
+                
+                // Colonne Étudiant (50px proportionnel)
+                let colWidth = (colWidths[0] / 190) * tableWidth;
+                doc.text(fullName.substring(0, 12), currentX + 2, yPosition + 3); // Moins de caractères
+                currentX += colWidth;
+                
+                // Colonne Email (55px proportionnel)
+                colWidth = (colWidths[1] / 190) * tableWidth;
+                doc.text(email.substring(0, 18), currentX + 2, yPosition + 3); // Moins de caractères
+                currentX += colWidth;
+                
+                // Colonne Programme (55px proportionnel)
+                colWidth = (colWidths[2] / 190) * tableWidth;
+                doc.text(program.substring(0, 18), currentX + 2, yPosition + 3); // Moins de caractères
+                currentX += colWidth;
+                
+                // Colonne Statut (30px proportionnel)
+                colWidth = (colWidths[3] / 190) * tableWidth;
+                if (status === 'active') {
+                    doc.setTextColor(34, 197, 94);
+                    doc.text('Actif', currentX + 2, yPosition + 3);
+                } else if (status === 'pending') {
+                    doc.setTextColor(251, 146, 60);
+                    doc.text('Att.', currentX + 2, yPosition + 3); // Abrégé
+                } else {
+                    doc.setTextColor(239, 68, 68);
+                    doc.text('Inact.', currentX + 2, yPosition + 3); // Abrégé
+                }
+                doc.setTextColor(0, 0, 0);
+                
+                yPosition += 10; // Moins d'espace entre lignes
+            });
+            
+            // Ligne de fin de tableau
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(1);
+            doc.line(startX, yPosition, startX + tableWidth, yPosition);
+            
+            // Footer épuré
+            const footerY = pageHeight - 30;
+            
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(1);
+            doc.line(15, footerY - 10, pageWidth - 15, footerY - 10);
+            
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.text('© 2024 TAAJ Corp - Document généré automatiquement', pageWidth / 2, footerY, { align: 'center' });
+            doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth / 2, footerY + 8, { align: 'center' });
+            
+            // Télécharger le PDF
+            const fileName = `liste_etudiants_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
+            
+            showNotification('✅ PDF généré et téléchargé avec succès!', 'success');
         }
 
         // Charger les étudiants au chargement de la page

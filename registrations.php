@@ -933,6 +933,303 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+<script>
+// Fonction pour générer un PDF des inscriptions avec design jaune
+function generateRegistrationsPDF() {
+  showNotification('📄 Génération du PDF en cours...', 'success');
+  
+  // Récupérer les données des inscriptions
+  fetch('generate_report_simple.php?type=registrations&format=json')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        createPDFWithTemplate('RAPPORT DES INSCRIPTIONS', data.data, 'registrations');
+      } else {
+        showNotification('❌ Erreur: ' + data.message, 'error');
+      }
+    })
+    .catch(error => {
+      showNotification('❌ Erreur: ' + error.message, 'error');
+    });
+}
+
+// Fonction template pour créer des PDF avec design jaune (réutilisable)
+function createPDFWithTemplate(title, data, reportType) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Variables pour le design
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPosition = 20;
+  
+  // Header avec design jaune (template)
+  doc.setFillColor(255, 193, 7); // Jaune
+  doc.rect(0, 0, pageWidth, 60, 'F');
+  
+  // Titre
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(24);
+  doc.setFont(undefined, 'bold');
+  doc.text(title, pageWidth / 2, 25, { align: 'center' });
+  
+  // Sous-titre
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
+  doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, 35, { align: 'center' });
+  
+  // Date
+  doc.text('Généré le: ' + new Date().toLocaleDateString('fr-FR'), pageWidth / 2, 45, { align: 'center' });
+  
+  yPosition = 80;
+  
+  // Contenu spécifique selon le type de rapport
+  if (reportType === 'registrations') {
+    // Statistiques des inscriptions
+    doc.setFillColor(255, 235, 156); // Jaune clair
+    doc.rect(15, yPosition - 10, pageWidth - 30, 40, 'F');
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Statistiques des Inscriptions:', 20, yPosition);
+    
+    yPosition += 15;
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    
+    const totalRegistrations = data.length;
+    const paidRegistrations = data.filter(r => r.payment_status === 'paid').length;
+    const pendingRegistrations = data.filter(r => r.payment_status === 'pending').length;
+    const unpaidRegistrations = data.filter(r => r.payment_status === 'unpaid').length;
+    const totalRevenue = data.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+    
+    doc.text(`Total: ${totalRegistrations} inscriptions`, 20, yPosition);
+    doc.text(`Payées: ${paidRegistrations} inscriptions`, 20, yPosition + 12);
+    doc.text(`En attente: ${pendingRegistrations} inscriptions`, 120, yPosition + 12);
+    doc.text(`Non payées: ${unpaidRegistrations} inscriptions`, 20, yPosition + 24);
+    doc.text(`Revenus: ${totalRevenue.toLocaleString('fr-FR')} FCFA`, 120, yPosition + 24);
+    
+    yPosition += 50;
+    
+    // Tableau des inscriptions
+    const headers = ['Étudiant', 'Programme', 'Date', 'Montant (FCFA)', 'Statut'];
+    const dataRows = data.map(reg => [
+      reg.student_name || 'N/A',
+      reg.program_name || 'N/A',
+      reg.registration_date ? new Date(reg.registration_date).toLocaleDateString('fr-FR') : 'N/A',
+      Number(reg.amount || 0).toLocaleString('fr-FR'),
+      reg.payment_status || 'N/A'
+    ]);
+    
+    // En-têtes du tableau
+    doc.setFillColor(255, 193, 7); // Jaune
+    doc.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    
+    headers.forEach((header, index) => {
+      const x = 20 + (index * 35);
+      doc.text(header.substring(0, 12), x, yPosition);
+    });
+    
+    yPosition += 15;
+    
+    // Données du tableau
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    
+    dataRows.forEach((row, index) => {
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = 20;
+        
+        // Répéter l'en-tête sur la nouvelle page
+        doc.setFillColor(255, 193, 7);
+        doc.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        
+        headers.forEach((header, i) => {
+          const x = 20 + (i * 35);
+          doc.text(header.substring(0, 12), x, yPosition);
+        });
+        
+        yPosition += 15;
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+      }
+      
+      // Ligne de séparation
+      doc.setDrawColor(200, 200, 200);
+      doc.line(15, yPosition - 2, pageWidth - 15, yPosition - 2);
+      
+      // Alternance de couleurs
+      if (index % 2 === 0) {
+        doc.setFillColor(255, 248, 220); // Jaune très clair
+        doc.rect(15, yPosition - 2, pageWidth - 30, 8, 'F');
+      }
+      
+      // Données de la ligne
+      row.forEach((cellData, cellIndex) => {
+        const x = 20 + (cellIndex * 35);
+        const displayData = String(cellData).substring(0, 18);
+        
+        // Couleur pour les statuts de paiement
+        if (cellIndex === 4) {
+          if (cellData === 'paid') {
+            doc.setTextColor(0, 128, 0);
+            doc.text('Payé', x, yPosition + 5);
+          } else if (cellData === 'pending') {
+            doc.setTextColor(255, 140, 0);
+            doc.text('En attente', x, yPosition + 5);
+          } else {
+            doc.setTextColor(255, 0, 0);
+            doc.text('Non payé', x, yPosition + 5);
+          }
+          doc.setTextColor(0, 0, 0);
+        } else {
+          doc.text(displayData, x, yPosition + 5);
+        }
+      });
+      
+      yPosition += 12;
+    });
+  }
+  
+  // Footer (template)
+  const footerY = pageHeight - 20;
+  doc.setFillColor(255, 193, 7); // Jaune
+  doc.rect(0, footerY - 10, pageWidth, 20, 'F');
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, footerY, { align: 'center' });
+  doc.text('Page ' + doc.internal.getNumberOfPages(), pageWidth / 2, footerY + 8, { align: 'center' });
+  
+  // Télécharger le PDF
+  const fileName = `${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(fileName);
+  
+  showNotification('✅ PDF généré et téléchargé avec succès!', 'success');
+}
+
+// Fonction pour exporter les inscriptions (CSV) avec téléchargement direct
+function exportRegistrations() {
+  showNotification('📊 Export CSV en cours...', 'success');
+  
+  // Récupérer les données et générer le CSV directement
+  fetch('generate_report_simple.php?type=registrations&format=json')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        downloadCSVFile(data.data, 'inscriptions');
+      } else {
+        showNotification('❌ Erreur: ' + data.message, 'error');
+      }
+    })
+    .catch(error => {
+      showNotification('❌ Erreur: ' + error.message, 'error');
+    });
+}
+
+// Fonction pour télécharger un fichier CSV directement
+function downloadCSVFile(data, filename) {
+  // Créer le contenu CSV
+  let csvContent = '\uFEFF'; // BOM pour UTF-8
+  csvContent += 'Référence,Étudiant,Programme,Date inscription,Montant,Statut paiement,Notes\n';
+  
+  data.forEach(registration => {
+    const row = [
+      `"${registration.reference || ''}"`,
+      `"${registration.student_name || ''}"`,
+      `"${registration.program_name || ''}"`,
+      `"${registration.registration_date ? new Date(registration.registration_date).toLocaleDateString('fr-FR') : ''}"`,
+      `"${registration.amount || ''}"`,
+      `"${registration.payment_status || ''}"`,
+      `"${(registration.notes || '').replace(/"/g, '""')}"`
+    ];
+    csvContent += row.join(',') + '\n';
+  });
+  
+  // Créer le Blob et télécharger
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showNotification('✅ Export CSV téléchargé avec succès!', 'success');
+}
+
+// Fonction de notification (si elle n'existe pas déjà)
+function showNotification(message, type = 'info') {
+  // Supprimer les notifications existantes
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
+  // Créer la notification
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    padding: 12px 20px; border-radius: 8px; color: white;
+    font-size: 14px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideIn 0.3s ease; max-width: 300px;
+  `;
+  
+  // Couleur selon le type
+  switch(type) {
+    case 'success':
+      notification.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+      break;
+    case 'error':
+      notification.style.background = 'linear-gradient(135deg, #EF4444, #DC2626)';
+      break;
+    default:
+      notification.style.background = 'linear-gradient(135deg, #3B82F6, #2563EB)';
+  }
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  // Auto-suppression
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Styles d'animation
+if (!document.querySelector('#notification-styles')) {
+  const style = document.createElement('style');
+  style.id = 'notification-styles';
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="assets/js/sync_programs.js"></script>

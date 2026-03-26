@@ -723,8 +723,10 @@ function generateReport() {
       <div style="margin-bottom: 20px;">
         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Format:</label>
         <select id="reportFormat" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
-          <option value="pdf">PDF</option>
-          <option value="json">JSON</option>
+          <option value="pdf">PDF (Impression)</option>
+          <option value="html">HTML (Affichage)</option>
+          <option value="csv">CSV (Excel)</option>
+          <option value="json">JSON (Données)</option>
         </select>
       </div>
       
@@ -755,43 +757,458 @@ function downloadReport() {
   btn.textContent = 'Génération en cours...';
   btn.disabled = true;
   
-  // Construire l'URL
-  const url = `generate_report.php?type=${reportType}&format=${reportFormat}`;
-  
-  // Ouvrir dans un nouvel onglet pour PDF ou télécharger directement pour JSON
   if (reportFormat === 'pdf') {
-    window.open(url, '_blank');
-  } else {
-    fetch(url)
+    // Utiliser le nouveau système jsPDF avec design jaune
+    generatePDFReport(reportType);
+  } else if (reportFormat === 'html') {
+    window.open(`generate_report_simple.php?type=${reportType}&format=html`, '_blank');
+    showNotification('✅ Rapport HTML ouvert dans un nouvel onglet', 'success');
+  } else if (reportFormat === 'csv') {
+    // Téléchargement direct du CSV
+    fetch(`generate_report_simple.php?type=${reportType}&format=json`)
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Créer et télécharger le fichier JSON
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${data.title}_${data.generated_at}.json`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-          
-          // Fermer la modal
-          document.querySelector('div[style*=position]').remove();
+          downloadCSVFile(data.data, reportType);
         } else {
-          alert('Erreur: ' + data.message);
+          showNotification('❌ Erreur: ' + data.message, 'error');
         }
       })
       .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur de génération du rapport');
+        showNotification('❌ Erreur: ' + error.message, 'error');
       })
       .finally(() => {
         btn.textContent = originalText;
         btn.disabled = false;
+        document.querySelector('div[style*=position]').remove();
       });
+    return;
+  } else {
+    fetch(`generate_report_simple.php?type=${reportType}&format=json`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const jsonData = JSON.stringify(data, null, 2);
+          const blob = new Blob([jsonData], { type: 'application/json' });
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `${data.title}_${new Date().toISOString().slice(0,10)}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(downloadUrl);
+          
+          showNotification('✅ Rapport JSON téléchargé avec succès', 'success');
+        } else {
+          showNotification('❌ Erreur: ' + data.message, 'error');
+        }
+      })
+      .catch(error => {
+        showNotification('❌ Erreur: ' + error.message, 'error');
+      })
+      .finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        document.querySelector('div[style*=position]').remove();
+      });
+    return;
   }
+  
+  // Fermer la modal pour HTML/CSV
+  btn.textContent = originalText;
+  btn.disabled = false;
+  document.querySelector('div[style*=position]').remove();
+}
+
+// Fonction pour générer des PDF avec design jaune (template)
+function generatePDFReport(reportType) {
+  showNotification('📄 Génération du PDF en cours...', 'success');
+  
+  // Récupérer les données selon le type de rapport
+  let apiUrl = '';
+  let reportTitle = '';
+  
+  switch(reportType) {
+    case 'students':
+      apiUrl = 'api_crud_students.php?action=get';
+      reportTitle = 'RAPPORT DES ÉTUDIANTS';
+      break;
+    case 'programs':
+      apiUrl = 'generate_report_simple.php?type=programs&format=json';
+      reportTitle = 'RAPPORT DES PROGRAMMES';
+      break;
+    case 'registrations':
+      apiUrl = 'generate_report_simple.php?type=registrations&format=json';
+      reportTitle = 'RAPPORT DES INSCRIPTIONS';
+      break;
+    case 'payments':
+      apiUrl = 'generate_report_simple.php?type=payments&format=json';
+      reportTitle = 'RAPPORT DES PAIEMENTS';
+      break;
+    default:
+      apiUrl = 'generate_report_simple.php?type=summary&format=json';
+      reportTitle = 'RAPPORT GÉNÉRAL';
+  }
+  
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success || data.students) {
+        const reportData = data.students || data.data || data;
+        createPDFWithTemplate(reportTitle, reportData, reportType);
+      } else {
+        showNotification('❌ Erreur: ' + data.message, 'error');
+      }
+    })
+    .catch(error => {
+      showNotification('❌ Erreur: ' + error.message, 'error');
+    });
+}
+
+// Fonction template pour créer des PDF avec design jaune
+function createPDFWithTemplate(title, data, reportType) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Variables pour le design
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPosition = 20;
+  
+  // Header avec design jaune (template)
+  doc.setFillColor(255, 193, 7); // Jaune
+  doc.rect(0, 0, pageWidth, 60, 'F');
+  
+  // Titre
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(24);
+  doc.setFont(undefined, 'bold');
+  doc.text(title, pageWidth / 2, 25, { align: 'center' });
+  
+  // Sous-titre
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
+  doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, 35, { align: 'center' });
+  
+  // Date
+  doc.text('Généré le: ' + new Date().toLocaleDateString('fr-FR'), pageWidth / 2, 45, { align: 'center' });
+  
+  yPosition = 80;
+  
+  // Contenu spécifique selon le type de rapport
+  if (reportType === 'summary') {
+    // Rapport résumé avec statistiques
+    doc.setFillColor(255, 235, 156); // Jaune clair
+    doc.rect(15, yPosition - 10, pageWidth - 30, 60, 'F');
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Statistiques Générales:', 20, yPosition);
+    
+    yPosition += 15;
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null) {
+        let label = '';
+        switch(key) {
+          case 'total_students': label = 'Total Étudiants'; break;
+          case 'total_programs': label = 'Total Programmes'; break;
+          case 'total_registrations': label = 'Total Inscriptions'; break;
+          case 'paid_registrations': label = 'Inscriptions Payées'; break;
+          case 'total_revenue': label = 'Revenus Totaux (FCFA)'; break;
+          default: label = key.replace(/_/g, ' ').toUpperCase();
+        }
+        
+        const value = key.includes('revenue') ? 
+          Number(data[key]).toLocaleString('fr-FR') + ' FCFA' : 
+          Number(data[key]).toLocaleString('fr-FR');
+        
+        doc.text(`${label}: ${value}`, 20, yPosition);
+        yPosition += 12;
+      }
+    });
+    
+  } else {
+    // Tableaux pour les autres rapports
+    let headers = [];
+    let dataRows = [];
+    
+    switch(reportType) {
+      case 'students':
+        headers = ['Nom', 'Email', 'Programme', 'Statut'];
+        dataRows = data.map(student => [
+          `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+          student.email || 'N/A',
+          student.program_name || 'N/A',
+          student.status || 'N/A'
+        ]);
+        break;
+        
+      case 'programs':
+        headers = ['Programme', 'Code', 'Niveau', 'Durée', 'Capacité', 'Prix (FCFA)'];
+        dataRows = data.map(program => [
+          program.name || 'N/A',
+          program.code || 'N/A',
+          program.level || 'N/A',
+          program.duration || 'N/A',
+          program.capacity || 'N/A',
+          Number(program.price || 0).toLocaleString('fr-FR')
+        ]);
+        break;
+        
+      case 'registrations':
+        headers = ['Étudiant', 'Programme', 'Date', 'Statut'];
+        dataRows = data.map(reg => [
+          reg.student_name || 'N/A',
+          reg.program_name || 'N/A',
+          reg.registration_date ? new Date(reg.registration_date).toLocaleDateString('fr-FR') : 'N/A',
+          reg.status || 'N/A'
+        ]);
+        break;
+        
+      case 'payments':
+        headers = ['Référence', 'Étudiant', 'Programme', 'Montant (FCFA)', 'Date'];
+        dataRows = data.map(payment => [
+          payment.reference || 'N/A',
+          payment.student_name || 'N/A',
+          payment.program_name || 'N/A',
+          Number(payment.amount || 0).toLocaleString('fr-FR'),
+          payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('fr-FR') : 'N/A'
+        ]);
+        break;
+    }
+    
+    // En-têtes du tableau
+    doc.setFillColor(255, 193, 7); // Jaune
+    doc.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    
+    headers.forEach((header, index) => {
+      const x = 20 + (index * 40);
+      doc.text(header.substring(0, 15), x, yPosition);
+    });
+    
+    yPosition += 15;
+    
+    // Données du tableau
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    
+    dataRows.forEach((row, index) => {
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = 20;
+        
+        // Répéter l'en-tête sur la nouvelle page
+        doc.setFillColor(255, 193, 7);
+        doc.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        
+        headers.forEach((header, i) => {
+          const x = 20 + (i * 40);
+          doc.text(header.substring(0, 15), x, yPosition);
+        });
+        
+        yPosition += 15;
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+      }
+      
+      // Ligne de séparation
+      doc.setDrawColor(200, 200, 200);
+      doc.line(15, yPosition - 2, pageWidth - 15, yPosition - 2);
+      
+      // Alternance de couleurs
+      if (index % 2 === 0) {
+        doc.setFillColor(255, 248, 220); // Jaune très clair
+        doc.rect(15, yPosition - 2, pageWidth - 30, 8, 'F');
+      }
+      
+      // Données de la ligne
+      row.forEach((cellData, cellIndex) => {
+        const x = 20 + (cellIndex * 40);
+        const displayData = String(cellData).substring(0, 20);
+        
+        // Couleur pour les statuts
+        if (cellIndex === 3 && (reportType === 'students' || reportType === 'registrations')) {
+          if (cellData === 'active' || cellData === 'paid') {
+            doc.setTextColor(0, 128, 0);
+          } else if (cellData === 'pending') {
+            doc.setTextColor(255, 140, 0);
+          } else {
+            doc.setTextColor(255, 0, 0);
+          }
+          doc.text(displayData, x, yPosition + 5);
+          doc.setTextColor(0, 0, 0);
+        } else {
+          doc.text(displayData, x, yPosition + 5);
+        }
+      });
+      
+      yPosition += 12;
+    });
+  }
+  
+  // Footer (template)
+  const footerY = pageHeight - 20;
+  doc.setFillColor(255, 193, 7); // Jaune
+  doc.rect(0, footerY - 10, pageWidth, 20, 'F');
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  doc.text('TAAJ Corp - Système de Gestion Académique', pageWidth / 2, footerY, { align: 'center' });
+  doc.text('Page ' + doc.internal.getNumberOfPages(), pageWidth / 2, footerY + 8, { align: 'center' });
+  
+  // Télécharger le PDF
+  const fileName = `${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(fileName);
+  
+  showNotification('✅ PDF généré et téléchargé avec succès!', 'success');
+  
+  // Fermer la modal
+  const modal = document.querySelector('div[style*=position]');
+  if (modal) modal.remove();
+}
+
+// Fonction pour télécharger un fichier CSV directement
+function downloadCSVFile(data, reportType) {
+  // Définir les en-têtes selon le type de rapport
+  let headers = '';
+  let filename = '';
+  
+  switch(reportType) {
+    case 'students':
+      headers = 'Nom,Email,Téléphone,Programme,Niveau,Date de naissance,Statut,Carte étudiant';
+      filename = 'etudiants';
+      break;
+    case 'programs':
+      headers = 'Programme,Code,Niveau,Durée,Capacité,Prix,Description,Statut';
+      filename = 'programmes';
+      break;
+    case 'registrations':
+      headers = 'Référence,Étudiant,Programme,Date inscription,Montant,Statut paiement,Notes';
+      filename = 'inscriptions';
+      break;
+    case 'payments':
+      headers = 'Référence,Étudiant,Programme,Montant,Date paiement,Statut';
+      filename = 'paiements';
+      break;
+    default:
+      headers = 'Type,Valeur';
+      filename = 'rapport';
+  }
+  
+  // Créer le contenu CSV
+  let csvContent = '\uFEFF'; // BOM pour UTF-8
+  csvContent += headers + '\n';
+  
+  if (reportType === 'summary') {
+    // Cas spécial pour le rapport résumé
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null) {
+        let label = '';
+        switch(key) {
+          case 'total_students': label = 'Total Étudiants'; break;
+          case 'total_programs': label = 'Total Programmes'; break;
+          case 'total_registrations': label = 'Total Inscriptions'; break;
+          case 'paid_registrations': label = 'Inscriptions Payées'; break;
+          case 'total_revenue': label = 'Revenus Totaux (FCFA)'; break;
+          default: label = key.replace(/_/g, ' ').toUpperCase();
+        }
+        
+        const value = key.includes('revenue') ? 
+          Number(data[key]).toLocaleString('fr-FR') + ' FCFA' : 
+          Number(data[key]).toLocaleString('fr-FR');
+        
+        csvContent += `"${label}","${value}"\n`;
+      }
+    });
+  } else {
+    // Pour les autres types de rapports
+    data.forEach(item => {
+      let row = [];
+      
+      switch(reportType) {
+        case 'students':
+          row = [
+            `"${item.first_name || ''} ${item.last_name || ''}"`,
+            `"${item.email || ''}"`,
+            `"${item.phone || ''}"`,
+            `"${item.program_name || ''}"`,
+            `"${item.level || ''}"`,
+            `"${item.date_of_birth || ''}"`,
+            `"${item.status || ''}"`,
+            `"${item.student_id_card || ''}"`
+          ];
+          break;
+          
+        case 'programs':
+          row = [
+            `"${item.name || ''}"`,
+            `"${item.code || ''}"`,
+            `"${item.level || ''}"`,
+            `"${item.duration || ''}"`,
+            `"${item.capacity || ''}"`,
+            `"${item.price || ''}"`,
+            `"${(item.description || '').replace(/"/g, '""')}"`,
+            `"${item.active ? 'Actif' : 'Inactif'}"`
+          ];
+          break;
+          
+        case 'registrations':
+          row = [
+            `"${item.reference || ''}"`,
+            `"${item.student_name || ''}"`,
+            `"${item.program_name || ''}"`,
+            `"${item.registration_date ? new Date(item.registration_date).toLocaleDateString('fr-FR') : ''}"`,
+            `"${item.amount || ''}"`,
+            `"${item.payment_status || ''}"`,
+            `"${(item.notes || '').replace(/"/g, '""')}"`
+          ];
+          break;
+          
+        case 'payments':
+          row = [
+            `"${item.reference || ''}"`,
+            `"${item.student_name || ''}"`,
+            `"${item.program_name || ''}"`,
+            `"${item.amount || ''}"`,
+            `"${item.payment_date ? new Date(item.payment_date).toLocaleDateString('fr-FR') : ''}"`,
+            `"${item.payment_status || ''}"`
+          ];
+          break;
+      }
+      
+      csvContent += row.join(',') + '\n';
+    });
+  }
+  
+  // Créer le Blob et télécharger
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showNotification('✅ Export CSV téléchargé avec succès!', 'success');
 }
 </script>
 </body>
