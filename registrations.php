@@ -337,10 +337,10 @@ try {
         </div>
         <div class="user-block">
           <div>
-            <div class="uname">Johan Kabo</div>
-            <div class="urole">Administrateur</div>
+            <div class="uname">Junior Atchonkeu</div>
+            <div class="urole"><?php echo ucfirst($_SESSION['role']); ?></div>
           </div>
-          <div class="avatar">JK</div>
+          <div class="avatar">JA</div>
         </div>
       </div>
     </header>
@@ -474,8 +474,8 @@ try {
               <div class="detail-row"><span class="detail-key">Statut paiement</span><span class="detail-val" id="dStatus"></span></div>
               <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val" id="dDate"></span></div>
               <div class="detail-actions">
-                <button class="btn-approve">✓ Valider</button>
-                <button class="btn-reject">✕ Rejeter</button>
+                <button class="btn-approve" onclick="approveRegistration()">✓ Valider</button>
+                <button class="btn-reject" onclick="rejectRegistration()">✕ Rejeter</button>
               </div>
             </div>
           </div>
@@ -677,6 +677,85 @@ function showDetail(id) {
   document.getElementById('dStatus').innerHTML = '<span class="insc-status ' + registration.status + '">' + 
     (registration.status === 'paid' ? 'PAYÉ' : registration.status === 'pending' ? 'EN ATTENTE' : 'NON PAYÉ') + '</span>';
   document.getElementById('dDate').textContent = registration.date;
+  
+  // Afficher ou cacher les boutons d'action selon le statut
+  const detailActions = document.querySelector('.detail-actions');
+  if (registration.status === 'paid') {
+    detailActions.style.display = 'none';
+  } else {
+    detailActions.style.display = 'flex';
+  }
+  
+  // Stocker l'ID de l'inscription courante
+  window.currentRegistrationId = id;
+}
+
+// Fonction pour valider une inscription
+function approveRegistration() {
+  if (!window.currentRegistrationId) {
+    showNotification('⚠️ Veuillez sélectionner une inscription', 'error');
+    return;
+  }
+  
+  updateRegistrationStatus(window.currentRegistrationId, 'paid');
+}
+
+// Fonction pour rejeter une inscription
+function rejectRegistration() {
+  if (!window.currentRegistrationId) {
+    showNotification('⚠️ Veuillez sélectionner une inscription', 'error');
+    return;
+  }
+  
+  updateRegistrationStatus(window.currentRegistrationId, 'unpaid');
+}
+
+// Fonction pour mettre à jour le statut d'une inscription
+function updateRegistrationStatus(registrationId, newStatus) {
+  const actionText = newStatus === 'paid' ? 'valider' : 'rejeter';
+  
+  if (!confirm(`Êtes-vous sûr de vouloir ${actionText} cette inscription ?`)) {
+    return;
+  }
+  
+  fetch('update_registration_status.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      registration_id: registrationId,
+      status: newStatus
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showNotification('✅ ' + data.message, 'success');
+      
+      // Mettre à jour l'inscription dans la liste
+      const registrationIndex = registrations.findIndex(r => r.id === registrationId);
+      if (registrationIndex !== -1) {
+        registrations[registrationIndex].status = newStatus;
+        registrations[registrationIndex] = data.registration; // Mettre à jour avec les données fraîches
+      }
+      
+      // Recharger la liste et le résumé
+      renderList();
+      updatePaymentSummary();
+      
+      // Mettre à jour le détail si c'est l'inscription courante
+      if (window.currentRegistrationId === registrationId) {
+        showDetail(registrationId);
+      }
+    } else {
+      showNotification('❌ ' + data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Erreur updateRegistrationStatus:', error);
+    showNotification('❌ Erreur de connexion: ' + error.message, 'error');
+  });
 }
 
 function saveRegistration() {
@@ -856,5 +935,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/js/sync_programs.js"></script>
 </body>
 </html>

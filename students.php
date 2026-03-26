@@ -445,10 +445,10 @@ try {
         </div>
         <div class="user-block">
           <div class="user-names">
-            <div class="uname">Johan Kabo</div>
-            <div class="urole">Administrateur</div>
+            <div class="uname">Junior Atchonkeu</div>
+            <div class="urole"><?php echo ucfirst($_SESSION['role']); ?></div>
           </div>
-          <div class="avatar">JK</div>
+          <div class="avatar">JA</div>
         </div>
       </div>
     </header>
@@ -499,13 +499,21 @@ try {
       <div class="filter-panel" id="filterPanel">
         <div>
           <div class="form-label" style="margin-bottom:6px;">Programme</div>
-          <select class="form-select">
+          <select class="form-select" id="filterProgram">
             <option value="">Tous les programmes</option>
-            <option>Gestion</option>
-            <option>Médecine</option>
-            <option>Informatique</option>
-            <option>Économie</option>
-            <option>Droit</option>
+            <?php
+            // Charger les programmes dynamiquement depuis la base
+            try {
+                $stmt = $pdo->query("SELECT id, name, active FROM programs ORDER BY name");
+                $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($programs as $program) {
+                    $status = $program['active'] ? '' : ' (inactif)';
+                    echo '<option value="' . $program['id'] . '">' . htmlspecialchars($program['name'] . $status) . '</option>';
+                }
+            } catch (PDOException $e) {
+                echo '<option value="">Erreur de chargement</option>';
+            }
+            ?>
           </select>
         </div>
         <div>
@@ -579,13 +587,13 @@ try {
               <td><?php echo date('d/m/Y', strtotime($student['created_at'])); ?></td>
               <td>
                 <div class="actions-cell">
-                  <button class="action-btn view" title="Voir">
+                  <button class="action-btn view" title="Voir" onclick="viewStudent(<?php echo $student['id']; ?>)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
-                  <button class="action-btn edit" title="Modifier">
+                  <button class="action-btn edit" title="Modifier" onclick="editStudent(<?php echo $student['id']; ?>)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
-                  <button class="action-btn delete" title="Supprimer">
+                  <button class="action-btn delete" title="Supprimer" onclick="deleteStudent(<?php echo $student['id']; ?>)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   </button>
                 </div>
@@ -633,11 +641,19 @@ try {
           <label class="form-label">Programme</label>
           <select class="form-select" id="programId">
             <option value="">Sélectionner...</option>
-            <option value="1">Gestion</option>
-            <option value="2">Médecine</option>
-            <option value="3">Informatique</option>
-            <option value="4">Économie</option>
-            <option value="5">Droit</option>
+            <?php
+            // Charger les programmes dynamiquement depuis la base
+            try {
+                $stmt = $pdo->query("SELECT id, name, active FROM programs ORDER BY name");
+                $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($programs as $program) {
+                    $status = $program['active'] ? '' : ' (inactif)';
+                    echo '<option value="' . $program['id'] . '">' . htmlspecialchars($program['name'] . $status) . '</option>';
+                }
+            } catch (PDOException $e) {
+                echo '<option value="">Erreur de chargement</option>';
+            }
+            ?>
           </select>
         </div>
         <div class="form-group">
@@ -679,6 +695,7 @@ try {
         // Variables globales
         let students = [];
         let currentPage = 1;
+        let editingStudentId = null; // Pour suivre l'ID en cours de modification
         const STUDENTS_PER_PAGE = 8;
 
         // Fonctions du modal
@@ -918,37 +935,41 @@ try {
                 console.log('=== END DEBUG ===');
                 
                 // Validation
-                if (!firstName || !lastName || !email) {
-                    showNotification('⚠️ Veuillez remplir les champs obligatoires', 'error');
-                    return;
-                }
-                
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    showNotification('⚠️ Veuillez entrer une adresse email valide', 'error');
-                    return;
-                }
                 
                 // Désactiver le bouton
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
                 
                 // Envoyer les données
-                fetch('api_students_simple.php', {
+                const requestData = {
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email,
+                    phone: phone,
+                    program_id: programId,
+                    level: level,
+                    date_of_birth: dob,
+                    status: status
+                };
+                
+                // Ajouter l'ID si c'est une modification
+                if (editingStudentId) {
+                    requestData.id = editingStudentId;
+                }
+                
+                // Log de debug pour voir les données envoyées
+                console.log('=== DONNÉES ENVOYÉES AU SERVEUR ===');
+                console.log('requestData:', requestData);
+                console.log('programId:', programId);
+                console.log('editingStudentId:', editingStudentId);
+                console.log('=== FIN DEBUG ===');
+                
+                fetch('save_student.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        first_name: firstName,
-                        last_name: lastName,
-                        email: email,
-                        phone: phone,
-                        program_id: programId,
-                        level: level,
-                        date_of_birth: dob,
-                        status: status
-                    })
+                    body: JSON.stringify(requestData)
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -961,14 +982,7 @@ try {
                         loadStudents(); // Recharger la liste
                         
                         // Réinitialiser le formulaire
-                        document.getElementById('firstName').value = '';
-                        document.getElementById('lastName').value = '';
-                        document.getElementById('email').value = '';
-                        document.getElementById('phone').value = '';
-                        document.getElementById('programId').value = '';
-                        document.getElementById('level').value = '';
-                        document.getElementById('dateOfBirth').value = '';
-                        document.getElementById('status').value = 'pending';
+                        resetStudentForm();
                     } else {
                         showNotification('❌ ' + data.message, 'error');
                     }
@@ -990,6 +1004,192 @@ try {
             }
         }
 
+        // Fonction pour voir les détails d'un étudiant
+        function viewStudent(id) {
+            // Trouver l'étudiant dans les données chargées
+            const student = students.find(s => s.id === id);
+            if (student) {
+                alert(`Détails de l'étudiant:\n\nNom: ${student.first_name} ${student.last_name}\nEmail: ${student.email}\nTéléphone: ${student.phone || 'N/A'}\nProgramme: ${student.program_name || 'N/A'}\nStatut: ${student.status}`);
+            }
+        }
+
+        // Fonction pour modifier un étudiant
+        function editStudent(id) {
+            // Trouver l'étudiant dans les données chargées
+            const student = students.find(s => s.id === id);
+            if (!student) {
+                showNotification('Étudiant non trouvé', 'error');
+                return;
+            }
+            
+            // Définir l'ID de l'étudiant en cours de modification
+            editingStudentId = id;
+            
+            // Pré-remplir le formulaire avec les données de l'étudiant
+            document.getElementById('firstName').value = student.first_name || '';
+            document.getElementById('lastName').value = student.last_name || '';
+            document.getElementById('email').value = student.email || '';
+            document.getElementById('phone').value = student.phone || '';
+            document.getElementById('programId').value = student.program_id || '';
+            document.getElementById('level').value = student.level || '';
+            document.getElementById('dateOfBirth').value = student.date_of_birth || '';
+            document.getElementById('status').value = student.status || 'pending';
+            
+            // Changer le titre du modal et du bouton
+            document.querySelector('.modal-title').textContent = 'Modifier l\'Étudiant';
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            saveBtn.innerHTML = 'Mettre à jour';
+            saveBtn.onclick = saveStudent; // Utiliser la même fonction saveStudent
+            
+            // Ouvrir le modal
+            openModal();
+        }
+
+        // Fonction pour mettre à jour un étudiant
+        function updateStudent(id) {
+            const btn = document.querySelector('.modal-footer .btn-primary');
+            const originalText = btn.innerHTML;
+            
+            // Récupérer les valeurs du formulaire
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const programId = document.getElementById('programId').value;
+            const level = document.getElementById('level').value;
+            const dateOfBirth = document.getElementById('dateOfBirth').value;
+            const status = document.getElementById('status').value;
+            
+            // Validation
+            if (!firstName || !lastName || !email) {
+                btn.style.background = '#EF4444';
+                btn.innerHTML = '⚠️ Veuillez remplir les champs obligatoires';
+                setTimeout(() => {
+                    btn.style.background = '';
+                    btn.innerHTML = originalText;
+                }, 3000);
+                return;
+            }
+            
+            // Afficher le chargement
+            btn.innerHTML = '⏳ Mise à jour...';
+            btn.disabled = true;
+            
+            // Envoyer la mise à jour
+            fetch('save_student.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: id,
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    phone: phone,
+                    programId: programId,
+                    level: level,
+                    dateOfBirth: dateOfBirth,
+                    status: status
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    btn.style.background = '#10B981';
+                    btn.innerHTML = '✅ Mis à jour';
+                    
+                    // Mettre à jour l'étudiant dans le tableau local
+                    const studentIndex = students.findIndex(s => s.id === id);
+                    if (studentIndex !== -1) {
+                        students[studentIndex] = {
+                            ...students[studentIndex],
+                            first_name: firstName,
+                            last_name: lastName,
+                            email: email,
+                            phone: phone,
+                            program_id: programId,
+                            level: level,
+                            date_of_birth: dateOfBirth,
+                            status: status
+                        };
+                    }
+                    
+                    setTimeout(() => {
+                        closeModal();
+                        loadStudents();
+                        resetStudentForm();
+                    }, 1500);
+                } else {
+                    btn.style.background = '#EF4444';
+                    btn.innerHTML = '❌ ' + data.message;
+                }
+            })
+            .catch(error => {
+                btn.style.background = '#EF4444';
+                btn.innerHTML = '❌ Erreur réseau';
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 3000);
+            });
+        }
+
+        // Fonction pour supprimer un étudiant
+        function deleteStudent(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet étudiant ? Cette action est irréversible.')) {
+                // Envoyer la requête de suppression
+                fetch('save_student.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        delete: true,
+                        id: id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Étudiant supprimé avec succès', 'success');
+                        
+                        // Supprimer l'étudiant du tableau et recharger
+                        students = students.filter(s => s.id !== id);
+                        loadStudents();
+                    } else {
+                        showNotification('Erreur: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Erreur réseau lors de la suppression', 'error');
+                });
+            }
+        }
+
+        // Fonction pour réinitialiser le formulaire étudiant
+        function resetStudentForm() {
+            editingStudentId = null; // Réinitialiser l'ID de modification
+            
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('programId').value = '';
+            document.getElementById('level').value = '';
+            document.getElementById('dateOfBirth').value = '';
+            document.getElementById('status').value = 'pending';
+            
+            // Réinitialiser le titre et le bouton
+            document.querySelector('.modal-title').textContent = 'Ajouter un Étudiant';
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            saveBtn.innerHTML = 'Enregistrer';
+            saveBtn.onclick = saveStudent;
+        }
+
         // Charger les étudiants au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
             loadStudents();
@@ -998,5 +1198,6 @@ try {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/js/sync_programs.js"></script>
 </body>
 </html>

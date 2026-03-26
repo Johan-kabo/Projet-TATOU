@@ -200,10 +200,10 @@ try {
         </div>
         <div class="user-block">
           <div class="user-names">
-            <div class="uname"><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></div>
+            <div class="uname">Junior Atchonkeu</div>
             <div class="urole"><?php echo ucfirst($_SESSION['role']); ?></div>
           </div>
-          <div class="avatar"><?php echo strtoupper(substr($_SESSION['first_name'], 0, 1)) . strtoupper(substr($_SESSION['last_name'], 0, 1)); ?></div>
+          <div class="avatar">JA</div>
         </div>
       </div>
     </header>

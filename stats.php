@@ -275,10 +275,10 @@ try {
         </div>
         <div class="user-block">
           <div>
-            <div class="uname">Johan Kabo</div>
-            <div class="urole">Administrateur</div>
+            <div class="uname">Junior Atchonkeu</div>
+            <div class="urole"><?php echo ucfirst($_SESSION['role']); ?></div>
           </div>
-          <div class="avatar">JK</div>
+          <div class="avatar">JA</div>
         </div>
       </div>
     </header>

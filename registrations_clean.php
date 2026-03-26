@@ -321,8 +321,8 @@ try {
           <div class="notif-dot"></div>
         </div>
         <div class="user-block">
-          <div class="uavatar">JD</div>
-          <div class="uname">John Doe</div>
+          <div class="uavatar">JA</div>
+          <div class="uname">Junior Atchonkeu</div>
         </div>
       </div>
     </header>

@@ -355,10 +355,10 @@ try {
         </div>
         <div class="user-block">
           <div class="user-names">
-            <div class="uname"><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></div>
+            <div class="uname">Junior Atchonkeu</div>
             <div class="urole"><?php echo ucfirst($_SESSION['role']); ?></div>
           </div>
-          <div class="avatar"><?php echo strtoupper(substr($_SESSION['first_name'], 0, 1)) . strtoupper(substr($_SESSION['last_name'], 0, 1)); ?></div>
+          <div class="avatar">JA</div>
         </div>
       </div>
     </header>
@@ -370,7 +370,7 @@ try {
           <div class="page-title">Tableau de bord</div>
           <div class="page-sub">Bienvenue sur la plateforme de gestion TAAJ Corp.</div>
         </div>
-        <button class="btn-primary">
+        <button class="btn-primary" onclick="generateReport()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Générer un rapport
         </button>
@@ -697,7 +697,101 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Fonction pour générer un rapport améliorée
 function generateReport() {
-  window.open('export_dashboard.php', '_blank');
+  // Créer une modal pour choisir le type de rapport
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  `;
+  
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 16px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+      <h2 style="margin: 0 0 24px 0; color: #333; font-size: 20px; font-weight: 700;">Générer un Rapport</h2>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Type de rapport:</label>
+        <select id="reportType" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+          <option value="summary">Résumé Général</option>
+          <option value="students">Liste des Étudiants</option>
+          <option value="registrations">Liste des Inscriptions</option>
+          <option value="payments">Rapport des Paiements</option>
+          <option value="programs">Rapport des Programmes</option>
+        </select>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Format:</label>
+        <select id="reportFormat" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+          <option value="pdf">PDF</option>
+          <option value="json">JSON</option>
+        </select>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button onclick="this.closest('div[style*=position]').remove()" style="padding: 10px 20px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 8px; cursor: pointer; font-size: 14px;">Annuler</button>
+        <button onclick="downloadReport()" style="padding: 10px 20px; background: #F59E0B; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">Télécharger</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Fermer la modal en cliquant à l'extérieur
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+function downloadReport() {
+  const reportType = document.getElementById('reportType').value;
+  const reportFormat = document.getElementById('reportFormat').value;
+  
+  // Afficher un indicateur de chargement
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = 'Génération en cours...';
+  btn.disabled = true;
+  
+  // Construire l'URL
+  const url = `generate_report.php?type=${reportType}&format=${reportFormat}`;
+  
+  // Ouvrir dans un nouvel onglet pour PDF ou télécharger directement pour JSON
+  if (reportFormat === 'pdf') {
+    window.open(url, '_blank');
+  } else {
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Créer et télécharger le fichier JSON
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${data.title}_${data.generated_at}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          
+          // Fermer la modal
+          document.querySelector('div[style*=position]').remove();
+        } else {
+          alert('Erreur: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur de génération du rapport');
+      })
+      .finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
+  }
 }
 </script>
 </body>

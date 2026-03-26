@@ -142,6 +142,16 @@ try {
                 exit;
             }
             
+            // Valider que le programme existe si program_id est fourni
+            if (!empty($programId)) {
+                $programCheckStmt = $pdo->prepare("SELECT id FROM programs WHERE id = ?");
+                $programCheckStmt->execute([$programId]);
+                if (!$programCheckStmt->fetch()) {
+                    echo json_encode(['success' => false, 'message' => 'Le programme sélectionné n\'existe pas']);
+                    exit;
+                }
+            }
+            
             // Générer une carte d'étudiant unique
             $studentIdCard = 'STU' . date('Y') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
             
@@ -246,6 +256,16 @@ try {
             $oldStmt = $pdo->prepare("SELECT * FROM students WHERE id = ?");
             $oldStmt->execute([$studentId]);
             $oldValues = $oldStmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Valider que le programme existe si program_id est fourni
+            if (!empty($programId)) {
+                $programCheckStmt = $pdo->prepare("SELECT id FROM programs WHERE id = ?");
+                $programCheckStmt->execute([$programId]);
+                if (!$programCheckStmt->fetch()) {
+                    echo json_encode(['success' => false, 'message' => 'Le programme sélectionné n\'existe pas']);
+                    exit;
+                }
+            }
             
             // Mettre à jour l'étudiant
             $updateStmt = $pdo->prepare("

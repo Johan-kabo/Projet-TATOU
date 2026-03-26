@@ -99,6 +99,15 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
   .form-wrap { width: 100%; max-width: 420px; }
 
   .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+  .brand-logo {
+    width: 44px; height: 44px; 
+    border-radius: 12px; 
+    display: flex; align-items: center;
+    justify-content: center; 
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+  }
   .brand-icon {
     width: 44px; height: 44px; background: var(--accent);
     border-radius: 12px; display: flex; align-items: center;
@@ -275,12 +284,13 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
       <!-- BRAND -->
       <div class="brand">
-        <div class="brand-icon">T</div>
+        <img src="assets/images/logo-etablissement.png" alt="Logo Établissement" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="brand-icon" style="display:none;">T</div>
         <span class="brand-name">TAAJ Corp</span>
       </div>
 
-      <h1 class="form-title">Gestion Universitaire</h1>
-      <p class="form-sub">Bienvenue sur votre plateforme de gestion académique.<br>Connectez-vous pour accéder à votre tableau de bord.</p>
+      <h1 class="form-title">Gestion Des Inscriptions</h1>
+      <p class="form-sub">Bienvenue sur votre plateforme de gestion des inscriptions académiques.<br>Connectez-vous pour accéder à votre tableau de bord.</p>
 
       <!-- FORMULAIRE DE CONNEXION -->
       <form method="POST" action="">
@@ -524,7 +534,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     <div class="right-top">
       <div class="right-badge">
         <div class="badge-dot" style="background:#10B981;"></div>
-        <span class="badge-text">Plateforme en ligne</span>
+        <span class="badge-text">Plateforme en Intranet</span>
       </div>
     </div>
 

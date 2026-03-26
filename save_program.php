@@ -28,6 +28,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data) {
     $active = $data['active'] ?? true;
     
     try {
+        // Vérifier si c'est une modification ou une création
+        $isUpdate = isset($data['id']) && $data['id'] > 0;
+        $isDelete = isset($data['delete']) && $data['delete'] === true;
+        
+        if ($isDelete) {
+            // Suppression d'un programme
+            $programId = $data['id'];
+            
+            // Vérifier s'il y a des étudiants associés à ce programme
+            $studentsCheckStmt = $pdo->prepare("SELECT COUNT(*) as count FROM students WHERE program_id = ?");
+            $studentsCheckStmt->execute([$programId]);
+            $studentCount = $studentsCheckStmt->fetch()['count'];
+            
+            if ($studentCount > 0) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false, 
+                    'message' => "Impossible de supprimer ce programme : {$studentCount} étudiant(s) y sont inscrit(s). Veuillez d'abord réinscrire ou supprimer les étudiants."
+                ]);
+                exit;
+            }
+            
+            $deleteStmt = $pdo->prepare("DELETE FROM programs WHERE id = ?");
+            $result = $deleteStmt->execute([$programId]);
+            
+            if ($result) {
+                error_log("Programme supprimé: ID {$programId} par utilisateur " . $_SESSION['user_id'] ?? 'unknown');
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Programme supprimé avec succès']);
+            } else {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression']);
+            }
+            exit;
+        }
+        
+        if ($isUpdate) {
+            // Modification d'un programme
+            $programId = $data['id'];
+            
+            $updateStmt = $pdo->prepare("
+                UPDATE programs SET 
+                    name = ?, description = ?, level = ?, duration = ?, 
+                    capacity = ?, price = ?, active = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            
+            $result = $updateStmt->execute([
+                $name,
+                $description,
+                $level,
+                (int)$duration,
+                (int)$capacity,
+                (float)$price,
+                (int)$active,
+                $programId
+            ]);
+            
+            if ($result) {
+                error_log("Programme modifié: {$name} (ID: {$programId}) par utilisateur " . $_SESSION['user_id'] ?? 'unknown');
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Programme mis à jour avec succès']);
+            } else {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Erreur lors de la mise à jour']);
+            }
+            exit;
+        }
+        
+        // Création d'un nouveau programme
         // Vérifier si le code existe déjà
         $checkStmt = $pdo->prepare("SELECT id FROM programs WHERE code = ?");
         $checkStmt->execute([$code]);
@@ -41,9 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data) {
         $insertStmt = $pdo->prepare("
             INSERT INTO programs (
                 name, code, description, level, duration, 
-                capacity, price, requirements, objectives, 
-                active, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                capacity, price, active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         
         $result = $insertStmt->execute([
@@ -51,38 +120,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $data) {
             $code,
             $description,
             $level,
-            $duration,
-            $capacity,
-            $price,
-            $requirements,
-            $objectives,
-            $active,
-            $_SESSION['user_id']
+            (int)$duration,
+            (int)$capacity,
+            (float)$price,
+            (int)$active
         ]);
         
         if ($result) {
             $programId = $pdo->lastInsertId();
             
-            // Journaliser l'action
-            $logStmt = $pdo->prepare("
-                INSERT INTO logs (user_id, action, table_name, record_id, new_values) 
-                VALUES (?, ?, ?, ?, ?)
-            ");
-            $logStmt->execute([
-                $_SESSION['user_id'],
-                'CREATE',
-                'programs',
-                $programId,
-                json_encode([
-                    'name' => $name,
-                    'code' => $code,
-                    'level' => $level,
-                    'duration' => $duration,
-                    'capacity' => $capacity,
-                    'price' => $price,
-                    'active' => $active
-                ])
-            ]);
+            // Journaliser l'action dans les logs d'erreur PHP
+            error_log("Nouveau programme créé: {$name} (ID: {$programId}) par utilisateur " . $_SESSION['user_id'] ?? 'unknown');
             
             header('Content-Type: application/json');
             echo json_encode([

@@ -181,6 +181,8 @@ try {
     gap: 20px; animation: fadeUp 0.4s ease both;
   }
   @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideIn { from { opacity:0; transform:translateX(100%); } to { opacity:1; transform:translateX(0); } }
+  @keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(100%); } }
 
   .program-card {
     background: var(--card-bg); border: 1px solid var(--border);
@@ -201,64 +203,46 @@ try {
     font-size: 18px; font-weight: 700; color: var(--text-primary);
     margin-bottom: 6px;
   }
-  .program-meta {
-    display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted);
-  }
-  .meta-item {
-    display: flex; align-items: center; gap: 5px;
-  }
-  .meta-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-  }
-  .dot-active { background: var(--green); }
-  .dot-inactive { background: var(--red); }
-
-  .program-body {
-    padding: 20px;
-  }
-  .program-description {
-    font-size: 14px; line-height: 1.6; color: var(--text-muted);
-    margin-bottom: 16px;
-  }
-  .program-stats {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  }
-  .stat-item {
-    background: var(--page-bg); padding: 12px; border-radius: 8px;
-    text-align: center;
-  }
-  .stat-value {
-    font-size: 20px; font-weight: 700; color: var(--text-primary);
-    margin-bottom: 2px;
-  }
-  .stat-label {
-    font-size: 12px; color: var(--text-muted); font-weight: 500;
-  }
-
-  .program-footer {
-    padding: 16px 20px; border-top: 1px solid var(--border);
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .program-actions {
-    display: flex; gap: 8px;
-  }
-  .action-btn {
-    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
-    background: #fff; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: background 0.15s, border-color 0.15s; color: var(--text-muted);
-  }
-  .action-btn:hover { background: var(--page-bg); }
-  .action-btn.edit:hover { border-color: var(--accent); color: var(--accent); }
-  .action-btn.delete:hover { border-color: var(--red); color: var(--red); }
-
-  .program-badge {
+  .program-status {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 10px; border-radius: 20px;
     font-size: 12px; font-weight: 600;
   }
-  .badge-active { background: #ECFDF5; color: #065F46; }
-  .badge-inactive { background: #FEF2F2; color: #991B1B; }
+  .program-status.active {
+    background: #ECFDF5; color: #065F46;
+  }
+  .program-status.inactive {
+    background: #FEF2F2; color: #991B1B;
+  }
 
+  .program-info {
+    padding: 20px;
+  }
+  .program-meta {
+    display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .meta-item {
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .program-actions {
+    padding: 16px 20px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .btn-edit, .btn-delete {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-edit:hover {
+    background: var(--primary); color: white; border-color: var(--primary);
+  }
+  .btn-delete:hover {
+    background: var(--red); color: white; border-color: var(--red);
+  }
   /* ── LIST VIEW ── */
   .programs-list {
     display: none; background: var(--card-bg);
@@ -402,10 +386,10 @@ try {
         </div>
         <div class="user-block">
           <div class="user-names">
-            <div class="uname">Johan Kabo</div>
-            <div class="urole">Administrateur</div>
+            <div class="uname">Junior Atchonkeu</div>
+            <div class="urole"><?php echo ucfirst($_SESSION['role']); ?></div>
           </div>
-          <div class="avatar">JK</div>
+          <div class="avatar">JA</div>
         </div>
       </div>
     </header>
@@ -572,7 +556,27 @@ try {
   </div>
 </div>
 
+<!-- Script JavaScript après le HTML du modal -->
 <script>
+// Attendre que le DOM soit chargé
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM chargé, initialisation...');
+  
+  // Charger les programmes depuis le PHP
+  programs = <?php echo json_encode($programs); ?>;
+  console.log('Programmes chargés:', programs);
+  
+  // Afficher les programmes
+  renderPrograms();
+  
+  // Initialiser les autres fonctions
+  setupEventListeners();
+  setupFilters();
+  setupSearch();
+  
+  console.log('Initialisation terminée');
+});
+
 function setView(view, btn) {
   document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -590,7 +594,15 @@ function setView(view, btn) {
 }
 
 function openModal() {
-  document.getElementById('modalOverlay').classList.add('open');
+  console.log('openModal appelée');
+  const modal = document.getElementById('modalOverlay');
+  console.log('modal trouvé:', modal);
+  if (modal) {
+    modal.classList.add('open');
+    console.log('classe open ajoutée');
+  } else {
+    console.error('modalOverlay non trouvé');
+  }
 }
 
 function closeModal() {
@@ -608,16 +620,252 @@ function viewProgram(id) {
 }
 
 function editProgram(id) {
-  alert(`Modifier le programme ID: ${id}`);
+  // Trouver le programme dans le tableau
+  const program = programs.find(p => p.id === id);
+  if (!program) {
+    alert('Programme non trouvé');
+    return;
+  }
+  
+  // Pré-remplir le formulaire avec les données du programme
+  document.querySelector('input[placeholder="Ex: Licence en Informatique"]').value = program.name || '';
+  document.querySelector('select.form-select').value = program.level || '';
+  document.querySelector('textarea.form-textarea').value = program.description || '';
+  document.querySelector('input[placeholder="3"]').value = program.duration || 3;
+  
+  // Changer le titre du modal et le bouton
+  document.querySelector('.modal-title').textContent = 'Modifier le Programme';
+  const saveBtn = document.querySelector('.modal-footer .btn-primary');
+  saveBtn.textContent = 'Mettre à jour';
+  saveBtn.onclick = () => updateProgram(id);
+  
+  // Ouvrir le modal
   openModal();
 }
 
-function deleteProgram(id) {
-  if (confirm('Êtes-vous sûr de vouloir supprimer ce programme ?')) {
-    alert(`Programme ${id} supprimé avec succès !`);
-    // Ici, vous pourriez faire un appel AJAX pour supprimer le programme
-    location.reload();
+function updateProgram(id) {
+  const btn = document.querySelector('.modal-footer .btn-primary');
+  const originalText = btn.innerHTML;
+  
+  // Récupérer les valeurs du formulaire
+  const name = document.querySelector('input[placeholder="Ex: Licence en Informatique"]').value.trim();
+  const level = document.querySelector('select.form-select').value;
+  const description = document.querySelector('textarea.form-textarea').value.trim();
+  const duration = document.querySelector('input[placeholder="3"]').value;
+  
+  // Validation
+  if (!name || !level || !description || !duration) {
+    btn.style.background = '#EF4444';
+    btn.innerHTML = '⚠️ Veuillez remplir tous les champs';
+    setTimeout(() => {
+      btn.style.background = '';
+      btn.innerHTML = originalText;
+    }, 3000);
+    return;
   }
+  
+  // Afficher le chargement
+  btn.innerHTML = '⏳ Mise à jour...';
+  btn.disabled = true;
+  
+  // Envoyer la mise à jour
+  fetch('save_program.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id: id,
+      name: name,
+      level: level,
+      description: description,
+      duration: duration,
+      capacity: 30,
+      price: 0,
+      active: true
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      btn.style.background = '#10B981';
+      btn.innerHTML = '✅ Mis à jour';
+      
+      // Mettre à jour le programme dans le tableau
+      const programIndex = programs.findIndex(p => p.id === id);
+      if (programIndex !== -1) {
+        programs[programIndex] = {
+          ...programs[programIndex],
+          name, level, description, duration: parseInt(duration)
+        };
+      }
+      
+      setTimeout(() => {
+        closeModal();
+        renderPrograms();
+        resetModalForm();
+        afterProgramOperation(); // Synchroniser toutes les dropdowns
+      }, 1500);
+    } else {
+      btn.style.background = '#EF4444';
+      btn.innerHTML = '❌ ' + data.message;
+    }
+  })
+  .catch(error => {
+    btn.style.background = '#EF4444';
+    btn.innerHTML = '❌ Erreur réseau';
+  })
+  .finally(() => {
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      btn.style.background = '';
+    }, 3000);
+  });
+}
+
+function resetModalForm() {
+  document.querySelector('input[placeholder="Ex: Licence en Informatique"]').value = '';
+  document.querySelector('select.form-select').value = '';
+  document.querySelector('textarea.form-textarea').value = '';
+  document.querySelector('input[placeholder="3"]').value = '';
+  
+  // Réinitialiser le titre et le bouton
+  document.querySelector('.modal-title').textContent = 'Ajouter un Nouveau Programme';
+  const saveBtn = document.querySelector('.modal-footer .btn-primary');
+  saveBtn.textContent = 'Enregistrer';
+  saveBtn.onclick = saveProgram;
+}
+
+function deleteProgram(id) {
+  if (confirm('Êtes-vous sûr de vouloir supprimer ce programme ? Cette action est irréversible.')) {
+    // Envoyer la requête de suppression
+    fetch('save_program.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        delete: true,
+        id: id
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Afficher une notification de succès
+        showNotification('Programme supprimé avec succès', 'success');
+        
+        // Supprimer le programme du tableau et re-render
+        programs = programs.filter(p => p.id !== id);
+        renderPrograms();
+        afterProgramOperation(); // Synchroniser toutes les dropdowns
+      } else {
+        showNotification('Erreur: ' + data.message, 'error');
+      }
+    })
+    .catch(error => {
+      showNotification('Erreur réseau lors de la suppression', 'error');
+    });
+  }
+}
+
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  `;
+  
+  if (type === 'success') {
+    notification.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+    notification.style.color = 'white';
+  } else if (type === 'error') {
+    notification.style.background = 'linear-gradient(135deg, #EF4444, #DC2626)';
+    notification.style.color = 'white';
+  } else {
+    notification.style.background = 'linear-gradient(135deg, #3B82F6, #2563EB)';
+    notification.style.color = 'white';
+  }
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => document.body.removeChild(notification), 300);
+  }, 3000);
+}
+
+// Fonction pour synchroniser toutes les dropdowns de programmes sur le site
+function syncAllProgramDropdowns() {
+  // Récupérer la liste à jour des programmes
+  fetch('api_get_programs.php')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const programs = data.programs;
+        
+        // Synchroniser les dropdowns sur la page actuelle
+        const dropdowns = document.querySelectorAll('select.form-select');
+        
+        dropdowns.forEach(dropdown => {
+          // Vérifier si c'est une dropdown de programmes (basé sur le contexte)
+          const label = dropdown.closest('.form-group')?.querySelector('label')?.textContent.toLowerCase() || '';
+          const placeholder = dropdown.querySelector('option')?.textContent.toLowerCase() || '';
+          
+          if (label.includes('programme') || placeholder.includes('programme') || 
+              label.includes('program') || placeholder.includes('program')) {
+            
+            // Sauvegarder la sélection actuelle
+            const currentValue = dropdown.value;
+            
+            // Vider la dropdown
+            dropdown.innerHTML = '<option value="">Sélectionner...</option>';
+            
+            // Ajouter les programmes à jour
+            programs.forEach(program => {
+              const option = document.createElement('option');
+              option.value = program.id;
+              option.textContent = program.name;
+              if (program.active === false) {
+                option.style.color = '#999';
+                option.textContent += ' (inactif)';
+              }
+              dropdown.appendChild(option);
+            });
+            
+            // Restaurer la sélection si elle existe toujours
+            if (currentValue) {
+              dropdown.value = currentValue;
+            }
+          }
+        });
+        
+        console.log('Dropdowns de programmes synchronisées avec succès');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la synchronisation des dropdowns:', error);
+    });
+}
+
+// Synchroniser automatiquement après chaque opération sur les programmes
+function afterProgramOperation() {
+  // Re-render les cartes sur la page programmes
+  if (typeof renderPrograms === 'function') {
+    renderPrograms();
+  }
+  
+  // Synchroniser toutes les dropdowns sur toutes les pages
+  syncAllProgramDropdowns();
 }
 
 function saveProgram() {
@@ -625,11 +873,10 @@ function saveProgram() {
   const originalText = btn.innerHTML;
   
   // Récupérer les valeurs du formulaire
-  const name = document.querySelector('input[placeholder="Nom du programme"]').value.trim();
-  const level = document.querySelector('select').value;
-  const description = document.querySelector('textarea').value.trim();
-  const duration = document.querySelector('input[placeholder="Durée"]').value;
-  const active = document.querySelector('select').value;
+  const name = document.querySelector('input[placeholder="Ex: Licence en Informatique"]').value.trim();
+  const level = document.querySelector('select.form-select').value;
+  const description = document.querySelector('textarea.form-textarea').value.trim();
+  const duration = document.querySelector('input[placeholder="3"]').value;
   
   // Validation simple
   if (!name || !level || !description || !duration) {
@@ -646,6 +893,9 @@ function saveProgram() {
   btn.innerHTML = '⏳ Enregistrement en cours...';
   btn.disabled = true;
   
+  // Générer un code automatiquement
+  const code = 'PROG-' + new Date().getFullYear() + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  
   // Envoyer les données au serveur
   fetch('save_program.php', {
     method: 'POST',
@@ -654,10 +904,13 @@ function saveProgram() {
     },
     body: JSON.stringify({
       name: name,
+      code: code,
       level: level,
       description: description,
       duration: duration,
-      active: active
+      capacity: 30,
+      price: 0,
+      active: true
     })
   })
   .then(response => response.json())
@@ -670,9 +923,13 @@ function saveProgram() {
       const newProgram = {
         id: data.program_id,
         name: name,
+        code: code,
         level: level,
-        duration: duration + ' ans',
-        active: active
+        duration_months: duration,
+        max_students: 30,
+        current_students: 0,
+        status: 'active',
+        created_at: new Date().toISOString()
       };
       programs.unshift(newProgram);
       renderPrograms();
@@ -683,14 +940,13 @@ function saveProgram() {
         btn.disabled = false;
         btn.innerHTML = originalText;
         btn.style.background = '';
-        
-        // Réinitialiser le formulaire
-        document.querySelector('input[placeholder="Nom du programme"]').value = '';
-        document.querySelector('select').value = '';
-        document.querySelector('textarea').value = '';
-        document.querySelector('input[placeholder="Durée"]').value = '';
-        document.querySelector('select').value = '';
+        resetModalForm();
+        afterProgramOperation(); // Synchroniser toutes les dropdowns
       }, 2000);
+      document.querySelector('input[placeholder="Ex: Licence en Informatique"]').value = '';
+      document.querySelector('select.form-select').value = '';
+      document.querySelector('textarea.form-textarea').value = '';
+      document.querySelector('input[placeholder="3"]').value = '';
     } else {
       btn.style.background = '#EF4444';
       btn.innerHTML = '❌ ' + data.message;
@@ -702,7 +958,7 @@ function saveProgram() {
     }
   })
   .catch(error => {
-    console.error('Erreur:', error);
+    console.error('Erreur saveProgram:', error);
     btn.style.background = '#EF4444';
     btn.innerHTML = '❌ Erreur de connexion';
     setTimeout(() => {
@@ -710,6 +966,75 @@ function saveProgram() {
       btn.innerHTML = originalText;
       btn.style.background = '';
     }, 3000);
+  });
+}
+
+// Fonction pour afficher les programmes
+function renderPrograms() {
+  const container = document.querySelector('.programs-grid');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  programs.forEach(program => {
+    const card = document.createElement('div');
+    card.className = 'program-card';
+    card.innerHTML = `
+      <div class="program-header">
+        <div class="program-title">${program.name}</div>
+        <div class="program-status ${program.active ? 'active' : 'inactive'}">
+          ${program.active ? 'Actif' : 'Inactif'}
+        </div>
+      </div>
+      <div class="program-info">
+        <div class="program-meta">
+          <div class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+            </svg>
+            ${program.level || 'N/A'}
+          </div>
+          <div class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            ${program.duration || 0} an(s)
+          </div>
+        </div>
+        <div class="program-meta">
+          <div class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            ${program.capacity || 30} places
+          </div>
+          <div class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            ${program.price ? Number(program.price).toLocaleString('fr-FR') + ' FCFA' : 'Gratuit'}
+          </div>
+        </div>
+      </div>
+      <div class="program-actions">
+        <button class="btn-edit" onclick="editProgram(${program.id})" title="Modifier">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-delete" onclick="deleteProgram(${program.id})" title="Supprimer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </div>
+    `;
+    container.appendChild(card);
   });
 }
 
@@ -960,12 +1285,37 @@ function generateProgramsPDF() {
   }, 3000);
 }
 
-// Charger les programmes au chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-  loadPrograms();
-});
-</script>
+// Fonctions d'initialisation
+function setupEventListeners() {
+  // Ajouter les écouteurs d'événements si nécessaire
+  console.log('Event listeners initialized');
+}
 
+function setupFilters() {
+  // Configuration des filtres
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      filterButtons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      // Logique de filtrage ici
+    });
+  });
+}
+
+function setupSearch() {
+  // Configuration de la recherche
+  const searchInput = document.querySelector('input[placeholder*="Rechercher"]');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      // Logique de recherche ici
+      renderPrograms(); // Re-render avec filtre
+    });
+  }
+}
+
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </body>

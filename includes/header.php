@@ -72,9 +72,9 @@ $flash = getFlash();
             <div class="topbar__actions">
                 <button class="btn btn--icon" title="Notifications"><i class="icon-bell"></i></button>
                 <div class="profile">
-                    <span class="profile__name">Johan Kabo</span>
-                    <span class="profile__role">Administrateur</span>
-                    <span class="profile__avatar">K</span>
+                    <span class="profile__name">Junior Atchonkeu</span>
+                    <span class="profile__role"><?php echo ucfirst($_SESSION['role']); ?></span>
+                    <span class="profile__avatar">JA</span>
                 </div>
             </div>
         </header>
