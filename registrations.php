@@ -61,14 +61,14 @@ try {
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
     --sidebar-bg: #0F1623;
-    --accent: #F59E0B;
-    --accent-hover: #D97706;
+    --accent: #1B4FA0;
+    --accent-hover: #0c326e;
     --page-bg: #F1F5F9;
     --card-bg: #FFFFFF;
     --text-primary: #0F172A;
     --text-muted: #64748B;
     --border: #E2E8F0;
-    --green: #10B981; --red: #EF4444; --blue: #3B82F6;
+    --green: #10B981; --red: #CC2127 ; --blue: #3B82F6;
     --font: 'Plus Jakarta Sans', sans-serif;
   }
   html, body { height: 100%; font-family: var(--font); background: var(--page-bg); color: var(--text-primary); }

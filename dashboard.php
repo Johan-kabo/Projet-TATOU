@@ -77,8 +77,8 @@ try {
   :root {
     --sidebar-bg: #0F1623;
     --sidebar-text: #94A3B8;
-    --accent: #F59E0B;
-    --accent-hover: #D97706;
+    --accent: #1B4FA0;
+    --accent-hover: #0c326e;
     --page-bg: #F1F5F9;
     --card-bg: #FFFFFF;
     --text-primary: #0F172A;

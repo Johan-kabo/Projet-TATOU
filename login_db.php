@@ -73,8 +73,8 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
-    --accent: #F59E0B;
-    --accent-hover: #D97706;
+    --accent: #1B4FA0 ;
+    --accent-hover: #0c326e ;
     --text-primary: #0F172A;
     --text-muted: #64748B;
     --border: #E2E8F0;

@@ -60,8 +60,8 @@ try {
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
     --sidebar-bg: #0F1623;
-    --accent: #F59E0B;
-    --accent-hover: #D97706;
+    --accent: #1B4FA0;
+    --accent-hover: #0c326e;
     --page-bg: #F1F5F9;
     --card-bg: #FFFFFF;
     --text-primary: #0F172A;
